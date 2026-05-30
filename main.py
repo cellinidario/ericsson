@@ -65,7 +65,7 @@ def main():
     # sweep directly on integer SNR; add_awgn takes a label such that
     #   snr_per_sample_db = label + 10*log10(k/K_sim)
     # so label = SNR - 10*log10(k/K_sim) (= SNR + 3 dB for K=4, k=2)
-    snr_db = np.arange(6, 24, 2.0)
+    snr_db = np.arange(6, 22, 2.0)
     label_db = snr_db - 10 * np.log10(config.bits_per_symbol / sps)
     print("\n--- E2E ---")
     measured = evaluate(transmitter, channel, receiver, config, label_db, 400000, device)
@@ -77,13 +77,14 @@ def main():
     # ----- figure: eye (left) + waterfall (right) -----
     fig, axes = plt.subplots(1, 2, figsize=(14, 5.5))
     draw_eye(axes[0], photocurrent, sps, phase, "Unipolar PAM-4 eye (photodetected)")
-    floor = lambda a: np.maximum(a, 1e-7)
-    axes[1].semilogy(snr_db, floor(measured), "-o", linewidth=2, label="E2E autoencoder (DPD + FFE)")
-    axes[1].semilogy(snr_db, floor(theory), "k--", linewidth=1.5, label="Theoretical unipolar PAM-4")
+    # floor measured at the smallest resolvable BER (1/num_eval), theory is left unfloored
+    measured_floor = np.maximum(measured, 1.0 / 400000)
+    axes[1].semilogy(snr_db, measured_floor, "-o", linewidth=2, label="E2E autoencoder (DPD + FFE)")
+    axes[1].semilogy(snr_db, theory, "k--", linewidth=1.5, label="Theoretical unipolar PAM-4")
     axes[1].grid(True, which="both", alpha=0.3)
     axes[1].set_xlabel("SNR [dB]")
     axes[1].set_ylabel("BER")
-    axes[1].set_ylim(1e-7, 1)
+    axes[1].set_ylim(1e-9, 1)
     axes[1].set_title("BER vs SNR")
     axes[1].legend(loc="lower left")
 
