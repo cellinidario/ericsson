@@ -1,8 +1,9 @@
 """Receiver: matched RRC filter + decimation to the ADC rate + feed-forward equalizer.
 
 The matched filter limits the photocurrent to the signal band before decimation,
-so sampling down to samples_per_symbol_rx is alias-free. The FFE is a small NN with
-a context window that outputs one bit-probability vector per symbol (trained by BCE).
+so sampling down to samples_per_symbol_rx is alias-free. The FFE is two fully-
+connected layers applied to a sliding window of `ffe_memory_symbols * samples_per_symbol_rx`
+samples, producing one bit-probability vector per symbol (trained by BCE).
 """
 
 import os
@@ -26,21 +27,25 @@ class Receiver(nn.Module):
         matched_taps = root_raised_cosine(config.rrc_rolloff, config.rrc_span_symbols, self.samples_per_symbol_sim)
         self.register_buffer("matched", torch.tensor(matched_taps, dtype=torch.float32).view(1, 1, -1))
 
-        memory = config.ffe_memory_symbols
         hidden = config.ffe_hidden_width
-        kernel = memory * self.samples_per_symbol_rx
-        padding = (kernel - self.samples_per_symbol_rx) // 2
-        self.context_layer = nn.Conv1d(1, hidden, kernel_size=kernel,
-                                       stride=self.samples_per_symbol_rx, padding=padding)
-        self.bit_layer = nn.Conv1d(hidden, self.num_bits, kernel_size=1)
+        # window of `memory` symbols, each contributing `samples_per_symbol_rx` samples
+        self.window_size = config.ffe_memory_symbols * self.samples_per_symbol_rx
+        self.context_layer = nn.Linear(self.window_size, hidden)
+        self.bit_layer = nn.Linear(hidden, self.num_bits)
 
     def forward(self, photocurrent):
         """photocurrent: (num_samples,) at the sim rate -> bit probabilities: (num_bits, num_symbols)."""
         x = photocurrent.view(1, 1, -1)
         x = F.conv1d(x, self.matched, padding=self.matched.shape[-1] // 2)   # matched filter
         x = x[:, :, ::self.decimation]                                       # decimate to ADC rate
-        hidden = F.leaky_relu(self.context_layer(x))
-        bit_probability = torch.sigmoid(self.bit_layer(hidden)).squeeze(0)
+        # sliding window of `window_size` samples, stride = samples_per_symbol_rx -> one window per symbol
+        pad = (self.window_size - self.samples_per_symbol_rx) // 2
+        x_pad = F.pad(x, (pad, pad))
+        windows = x_pad.unfold(2, self.window_size, self.samples_per_symbol_rx)   # (1, 1, num_symbols, window_size)
+        num_symbols = windows.shape[2]
+        flat = windows.permute(0, 2, 1, 3).reshape(1, num_symbols, -1)            # (1, num_symbols, window_size)
+        hidden = F.leaky_relu(self.context_layer(flat))                           # (1, num_symbols, hidden)
+        bit_probability = torch.sigmoid(self.bit_layer(hidden)).squeeze(0).t()    # (num_bits, num_symbols)
         return bit_probability
 
 
