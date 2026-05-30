@@ -48,7 +48,7 @@ def main():
     torch.manual_seed(0)
     np.random.seed(0)
 
-    transmitter, channel, receiver = train(config, device, num_steps=7000)
+    transmitter, channel, receiver = train(config, device, num_steps=10000)
     sps = config.samples_per_symbol_sim
 
     # ----- eye + levels -----

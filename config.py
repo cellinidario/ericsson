@@ -43,7 +43,7 @@ class Config:
 
         # ----- DPD (transmitter DSP), Fork A: symbol-rate predistortion with memory -----
         self.dpd_memory_symbols = 5             # context window (temporal memory of predistortion)
-        self.dpd_hidden_width = 16              # leaky-ReLU hidden layer width
+        self.dpd_hidden_width = 8               # leaky-ReLU hidden layer width
         self.drive_min_volt = 0.0               # DPD output range: lower bound
         self.drive_max_volt = 5.0               # upper bound = Vpi -> monotonic half of MZM transfer,
                                                 # init (tanh=0) lands at quadrature (max slope, good gradient)
@@ -52,7 +52,7 @@ class Config:
 
         # ----- FFE (receiver DSP) -----
         self.ffe_memory_symbols = 11            # context window at the decision (odd -> centered)
-        self.ffe_hidden_width = 16
+        self.ffe_hidden_width = 8
 
         # ----- training -----
         self.num_symbols_train = 200_000        # long sequence (no tiny blocks; edges discarded)
