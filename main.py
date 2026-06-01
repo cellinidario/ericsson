@@ -3,7 +3,7 @@ deliverables — a clean eye diagram and a BER vs Eb/N0 waterfall against theory
 
 The x-axis is Eb/N0 (energy per bit / one-sided N0) — the convention-free figure of
 merit, with no bandwidth choice to argue about. The theoretical reference is chosen by
-config.noise_regime: Forestieri eq.(A.19) for electrical noise, eq.(A.47) for the
+config.noise_regime: Forestieri eq.(A.19) for thermal/electrical noise, eq.(A.47) for the
 ASE-dominant regime (signal-spontaneous beat noise). Both are BER(Eb/N0) directly.
 """
 
@@ -70,7 +70,7 @@ def main():
         theory_label = "Theory unipolar PAM-4 (ASE, A.47)"
     else:
         theory = theoretical_ber_unipolar(ebn0_db, config.modulation_order)
-        theory_label = "Theory unipolar PAM-4 (electrical, A.19)"
+        theory_label = "Theory unipolar PAM-4 (thermal, A.19)"
 
     # ----- figure: eye (left) + waterfall (right) -----
     fig, axes = plt.subplots(1, 2, figsize=(14, 5.5))

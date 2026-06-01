@@ -35,7 +35,7 @@ def theoretical_ber_unipolar_ase(ebn0_db, modulation_order):
     AMPLITUDE levels (A_m = (m-1)A), optimum thresholds. The decision variable is the field
     amplitude (Ricean), so a Rayleigh-tail exp() term replaces one of the Gaussian tails:
         BER = 1/(M*log2M) * [ exp(-(c/2)*Eb/N0) + (2M-3)*Q(sqrt(c*Eb/N0)) ],
-        c = 3*log2M / ((M-1)(2M-1))   (same Q-argument as the electrical regime, A.19).
+        c = 3*log2M / ((M-1)(2M-1))   (same Q-argument as the thermal regime, A.19).
     Eb/N0 here is the photons-per-bit at the preamplifier input.
     """
     ebn0 = 10 ** (np.asarray(ebn0_db) / 10)

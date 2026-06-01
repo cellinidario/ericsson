@@ -39,6 +39,12 @@ class Config:
         self.fiber_loss_db_per_km = 0.32        # typical SMF at O-band
         self.fiber_beta2_ps2_per_km = -1.0      # residual chromatic dispersion at 1310 nm
 
+        # ----- optical bandpass before the photodiode (preamplified receiver) -----
+        # Full optical width B_o around the carrier; in baseband it is a complex low-pass of
+        # cutoff B_o/2 on the field (suppresses out-of-band ASE before the square law).
+        # 37 GHz ~= R_s*(1+rolloff), matched to the signal optical band. None disables it.
+        self.optical_filter_bandwidth = 37e9
+
         # ----- photodiode -----
         self.photodiode_bandwidth = 25e9        # post-detection low-pass bandwidth
         self.adc_resolution_bits = 8            # ideal 8-bit quantizer (RX)
@@ -59,6 +65,10 @@ class Config:
         self.ffe_hidden_width = 8               # 16 was tested in the ASE regime: only ~0.5 dB at
                                                 # 20 dB, so the floor is NOT FFE capacity (it is the
                                                 # intensity-domain receiver vs the A.47 envelope bound)
+        self.rx_sqrt_companding = None          # DSP sqrt after the ADC (photocurrent -> envelope):
+                                                # decide on amplitude. None = AUTO: ON for "ase" (beat
+                                                # noise is additive in amplitude) and OFF for "thermal"
+                                                # (noise additive in intensity -> sqrt hurts). True/False forces.
 
         # ----- training -----
         self.num_symbols_train = 200_000        # long sequence (no tiny blocks; edges discarded)
@@ -70,11 +80,11 @@ class Config:
         self.learning_rate = 1e-3
 
         # ----- noise regime -----
-        # "ase"        : amplified-spontaneous-emission (optical) beat noise, added to the
-        #                COMPLEX field before the photodiode -> signal-dependent after the
-        #                square law. Reference: Forestieri eq.(A.47). Electrical noise OFF.
-        # "electrical" : white Gaussian noise added to the photocurrent at the ADC (thermal/
-        #                electronics). Reference: Forestieri eq.(A.19).
+        # "ase"     : amplified-spontaneous-emission (optical) beat noise, added to the COMPLEX
+        #             field before the photodiode -> signal-dependent after the square law.
+        #             Reference: Forestieri eq.(A.47). Thermal/electrical noise OFF.
+        # "thermal" : white Gaussian (thermal/electronics) noise on the photocurrent at the ADC,
+        #             i.e. electrical noise (optical noise OFF). Reference: Forestieri eq.(A.19).
         self.noise_regime = "ase"
 
         # ----- noise sweep for the BER vs Eb/N0 curve -----
@@ -101,6 +111,9 @@ class Config:
         lines.append(f"MZM segments         : {self.num_mzm_segments}")
         lines.append(f"pulse shape          : RRC roll-off {self.rrc_rolloff}")
         lines.append(f"noise regime         : {self.noise_regime}")
+        lines.append(f"optical filter Bo    : {self.optical_filter_bandwidth/1e9:.0f} GHz" if self.optical_filter_bandwidth else "optical filter Bo    : none")
+        companding = self.rx_sqrt_companding if self.rx_sqrt_companding is not None else (self.noise_regime == "ase")
+        lines.append(f"rx sqrt companding   : {companding}")
         return "\n".join(lines)
 
 

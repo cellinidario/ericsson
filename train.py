@@ -36,8 +36,8 @@ def random_bits(num_bits, num_symbols, device):
 def equispacing_loss(photocurrent, symbols, samples_per_symbol, guard, noise_regime):
     """MSE that pins the decision-instant intensity to 4 clean, Gray-ordered levels.
     The TARGET spacing depends on the noise regime (Forestieri A.2, Fig. A.6):
-      electrical -> equispaced INTENSITY  (intensity proportional to rank      -> [0,1,2,3])
-      ase        -> equispaced AMPLITUDE  (intensity proportional to rank**2   -> [0,1,4,9])
+      thermal -> equispaced INTENSITY  (intensity proportional to rank      -> [0,1,2,3])
+      ase     -> equispaced AMPLITUDE  (intensity proportional to rank**2   -> [0,1,4,9])
     Both measured and target are z-scored, so only the SHAPE of the spacing is pinned."""
     gray_level = torch.tensor(GRAY_LEVEL, device=photocurrent.device)
     if noise_regime == "ase":
@@ -52,7 +52,7 @@ def equispacing_loss(photocurrent, symbols, samples_per_symbol, guard, noise_reg
 
 def link_photocurrent(transmitter, channel, bits, ebn0_db, config):
     """Photocurrent with noise injected per the configured regime: ASE on the optical field
-    (inside the channel) or electrical AWGN on the photocurrent (at the ADC)."""
+    (inside the channel) or thermal/electrical AWGN on the photocurrent (at the ADC)."""
     drive = transmitter(bits)
     if config.noise_regime == "ase":
         return channel(drive, ase_ebn0_db=ebn0_db)

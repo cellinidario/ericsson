@@ -42,7 +42,7 @@ def lowpass_fir(cutoff_hz, sample_rate, num_taps):
 
 
 class OpticalChannel(nn.Module):
-    def __init__(self, config, segment_filter_taps=65, pd_filter_taps=65):
+    def __init__(self, config, segment_filter_taps=65, pd_filter_taps=65, optical_filter_taps=65):
         super().__init__()
         self.num_segments = config.num_mzm_segments
         self.vpi = config.mzm_vpi_volt
@@ -71,6 +71,20 @@ class OpticalChannel(nn.Module):
         beta2_s2_per_m = config.fiber_beta2_ps2_per_km * 1e-27
         fiber_length_m = config.fiber_length_km * 1e3
         self.dispersion_coeff = 0.5 * beta2_s2_per_m * fiber_length_m   # [s^2], signed
+
+        # optical bandpass before the PD (preamplified receiver). In baseband (complex envelope,
+        # carrier at DC) the optical bandpass of full width B_o becomes a COMPLEX low-pass of
+        # cutoff B_o/2 on the field -> the same real FIR applied to each quadrature. It suppresses
+        # out-of-band ASE before the square law (cuts mainly the ASE-ASE beat). None = no filter.
+        optical_bw = getattr(config, "optical_filter_bandwidth", None)
+        if optical_bw is not None and optical_bw < config.sim_sample_rate:
+            optical_taps = lowpass_fir(optical_bw / 2, config.sim_sample_rate, optical_filter_taps)
+            optical_weight = torch.tensor(optical_taps).flip(0).view(1, 1, -1)
+            self.optical_filter = nn.Conv1d(1, 1, kernel_size=len(optical_taps),
+                                            padding=len(optical_taps) // 2, bias=False)
+            self.optical_filter.weight = nn.Parameter(optical_weight)
+        else:
+            self.optical_filter = None
 
         # photodiode low-pass FIR (single channel: the photocurrent)
         pd_taps = lowpass_fir(config.photodiode_bandwidth, config.sim_sample_rate, pd_filter_taps)
@@ -132,6 +146,10 @@ class OpticalChannel(nn.Module):
         # ASE beat noise: added to the FIELD (before the square law) -> signal-dependent
         if ase_ebn0_db is not None:
             field_real, field_imag = self._add_ase(field_real, field_imag, ase_ebn0_db)
+        # optical bandpass (baseband complex low-pass on the field), before the square law
+        if self.optical_filter is not None:
+            field_real = self.optical_filter(field_real)
+            field_imag = self.optical_filter(field_imag)
 
         photocurrent = field_real.pow(2) + field_imag.pow(2)      # square-law detection
         photocurrent = self.pd_filter(photocurrent)               # photodiode bandwidth

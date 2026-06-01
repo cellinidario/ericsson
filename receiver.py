@@ -23,6 +23,14 @@ class Receiver(nn.Module):
         self.samples_per_symbol_sim = config.samples_per_symbol_sim
         self.samples_per_symbol_rx = config.samples_per_symbol_rx
         self.decimation = self.samples_per_symbol_sim // self.samples_per_symbol_rx
+        # sqrt companding: a static DSP nonlinearity (photocurrent -> field amplitude/envelope)
+        # so the matched filter and FFE work where the ASE beat noise is ~additive and level-
+        # independent (Forestieri A.34). Inverts the PD square law. None -> auto per regime:
+        # ON for "ase", OFF for "thermal" (where the noise is already additive in intensity).
+        companding = getattr(config, "rx_sqrt_companding", None)
+        if companding is None:
+            companding = (config.noise_regime == "ase")
+        self.sqrt_companding = companding
 
         matched_taps = root_raised_cosine(config.rrc_rolloff, config.rrc_span_symbols, self.samples_per_symbol_sim)
         self.register_buffer("matched", torch.tensor(matched_taps, dtype=torch.float32).view(1, 1, -1))
@@ -36,6 +44,8 @@ class Receiver(nn.Module):
     def forward(self, photocurrent):
         """photocurrent: (num_samples,) at the sim rate -> bit probabilities: (num_bits, num_symbols)."""
         x = photocurrent.view(1, 1, -1)
+        if self.sqrt_companding:
+            x = torch.sqrt(F.relu(x) + 1e-6)                                 # intensity -> envelope (in DSP)
         x = F.conv1d(x, self.matched, padding=self.matched.shape[-1] // 2)   # matched filter
         x = x[:, :, ::self.decimation]                                       # decimate to ADC rate
         # sliding window of `window_size` samples, stride = samples_per_symbol_rx -> one window per symbol
