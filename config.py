@@ -25,17 +25,19 @@ class Config:
         self.rrc_span_symbols = 16              # RRC truncation length, in symbols
 
         # ----- segmented MZM -----
-        self.num_mzm_segments = 1               # start with 1, target is 4
+        self.num_mzm_segments = 4               # 4 driver segments, each with its own EO bandwidth
         self.mzm_vpi_volt = 5.0                 # half-wave voltage
         self.mzm_extinction_ratio_db = 33.0     # finite extinction ratio
-        self.mzm_bandwidth = 30e9               # EFFECTIVE per-segment bandwidth (driver-limited).
+        self.mzm_bandwidth = 30e9               # NOMINAL per-segment bandwidth (driver-limited).
+                                                # actual segments are spread around this (see channel.py),
                                                 # 30 GHz >> signal Nyquist -> minimal ISI, and lets K_sim=4.
-                                                # (device intrinsic is 67 GHz; raise + use K_sim=8 to chase theory)
+        self.segment_bandwidth_scales = (0.85, 0.90, 0.95, 1.00)  # per-segment BW = scale * mzm_bandwidth
 
-        # ----- optical channel (1310 nm: chromatic dispersion ~ 0, modeled as loss) -----
+        # ----- optical channel (1310 nm: small residual dispersion) -----
         self.wavelength_nm = 1310.0
         self.fiber_length_km = 10.0
         self.fiber_loss_db_per_km = 0.32        # typical SMF at O-band
+        self.fiber_beta2_ps2_per_km = -1.0      # residual chromatic dispersion at 1310 nm
 
         # ----- photodiode -----
         self.photodiode_bandwidth = 25e9        # post-detection low-pass bandwidth

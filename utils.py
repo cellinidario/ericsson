@@ -1,9 +1,10 @@
 """Helpers: theoretical PAM BER, AWGN at a target Eb/N0, and BER measurement.
 
-Eb/N0 convention (matches the awgn / slide-8 framework):
-    Eb/N0 [dB] = SNR_per_sample [dB] + 10*log10(samples_per_symbol_sim / bits_per_symbol)
-The noise is white over the simulation band f_s = samples_per_symbol_sim * symbol_rate,
+Eb/N0 convention (one-sided N0, as in Forestieri's BER formulas):
+    Eb/N0 [dB] = SNR_per_sample [dB] + 10*log10(samples_per_symbol_sim / (2*bits_per_symbol))
+The noise is real and white over the simulation band f_s = samples_per_symbol_sim*symbol_rate,
 added at the ADC (after the photodiode); the matched filter then combines it optimally.
+The factor 2 is the one-sided/two-sided N0 distinction: skip it and you are 3 dB off.
 """
 
 import os
@@ -37,9 +38,13 @@ def theoretical_ber_bipolar(ebn0_db, modulation_order):
 
 
 def add_awgn(photocurrent, ebn0_db, bits_per_symbol, samples_per_symbol_sim):
-    """Add white Gaussian noise at the ADC for a target Eb/N0 (per-sample-SNR convention)."""
+    """Add white Gaussian noise at the ADC for a target Eb/N0 (one-sided N0, Forestieri).
+
+    Inverts  Eb/N0 = snr_per_sample + 10*log10(K_sim/(2k))  to get the per-sample SNR.
+    The argument is the TRUE Eb/N0 (for K_sim=4, k=2 it equals snr_per_sample exactly).
+    """
     signal_power = photocurrent.detach().pow(2).mean()
-    snr_per_sample_db = ebn0_db + 10 * np.log10(bits_per_symbol / samples_per_symbol_sim)
+    snr_per_sample_db = ebn0_db - 10 * np.log10(samples_per_symbol_sim / (2 * bits_per_symbol))
     noise_power = signal_power / (10 ** (snr_per_sample_db / 10))
     noise = torch.sqrt(noise_power) * torch.randn_like(photocurrent)
     return photocurrent + noise

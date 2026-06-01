@@ -51,7 +51,7 @@ def forward_link(transmitter, channel, receiver, bits, ebn0_db, config, add_nois
     return receiver(photocurrent)
 
 
-def train(config, device, num_steps, ebn0_range=(10.0, 22.0)):
+def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
     """Single-stage joint DPD+FFE training (BCE for decodability + equispacing for a clean eye)."""
     transmitter = Transmitter(config).to(device)
     channel = OpticalChannel(config).to(device)
