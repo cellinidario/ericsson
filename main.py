@@ -92,11 +92,14 @@ def main():
     plt.savefig(out_path, dpi=150, bbox_inches="tight")
     print(f"\nsaved {out_path}")
 
-    # save the trained configuration (weights + params + results) so we can restore it
+    # save the trained configuration (weights + params + results) so we can restore it.
+    # rx_sqrt_companding is the RESOLVED bool (the receiver build depends on it) -> restore it on
+    # load so the receiver always matches the trained weights, regardless of the live config.
     checkpoint = {
         "transmitter": transmitter.state_dict(),
         "receiver": receiver.state_dict(),
         "config": {k: v for k, v in vars(config).items()},
+        "rx_sqrt_companding": bool(receiver.sqrt_companding),
         "ebn0_db": ebn0_db,
         "measured": measured,
     }
