@@ -8,7 +8,12 @@ Mirrors the device physics, as in the digital-surrogate approach:
                    the optical field
   optical fiber  : scalar loss + chromatic dispersion exp(j*beta2*L*omega^2/2)
                    applied to the COMPLEX optical envelope (1310 nm: small beta2)
-  photodiode     : square-modulus, additive Gaussian thermal noise, low-pass FIR
+  ASE noise      : complex Gaussian added to the optical FIELD before detection
+                   (optically-preamplified receiver, single polarization). Since
+                   it precedes the square law it becomes signal-dependent beat
+                   noise (signal-spontaneous) after detection: upper levels get
+                   noisier. Reference: Forestieri eq.(A.47).
+  photodiode     : square-modulus, low-pass FIR
 
 Everything is differentiable, so the E2E gradient backpropagates through it.
 """
@@ -45,8 +50,9 @@ class OpticalChannel(nn.Module):
         extinction_linear = config.extinction_ratio_linear
         self.gamma = (np.sqrt(extinction_linear) - 1) / (np.sqrt(extinction_linear) + 1)
         self.field_loss = float(np.sqrt(config.fiber_loss_linear))
-        self.thermal_noise_std = 0.0                              # set later for an operating point
         self.sim_sample_rate = config.sim_sample_rate
+        self.samples_per_symbol_sim = config.samples_per_symbol_sim   # K_sim, for the Eb/N0 bookkeeping
+        self.bits_per_symbol = config.bits_per_symbol                 # k
 
         # one low-pass FIR per MZM segment with its own bandwidth (driver mismatch)
         scales = self._segment_scales(config)
@@ -92,8 +98,25 @@ class OpticalChannel(nn.Module):
         out = torch.fft.ifft(torch.fft.fft(field) * transfer)
         return out.real.view(1, 1, -1), out.imag.view(1, 1, -1)
 
-    def forward(self, drive, add_noise=True):
-        """drive: (num_segments, num_samples) at the sim rate -> photocurrent: (num_samples,)."""
+    def _add_ase(self, field_real, field_imag, ebn0_db):
+        """Complex Gaussian ASE on the optical field, scaled to a target Eb/N0 (one-sided N0,
+        single polarization, as in Forestieri A.47).
+
+        Eb/N0 = Ps * (K_sim / k) / (2 * sigma^2)  ->  sigma^2 per quadrature, where
+        Ps = mean optical field power and Eb/N0 is the photons-per-bit at the preamp input.
+        With this scaling an ideal matched-filter envelope receiver reproduces (A.47) exactly.
+        """
+        mean_optical_power = (field_real.pow(2) + field_imag.pow(2)).mean().detach()
+        snr_linear = 10 ** (ebn0_db / 10)
+        quad_var = mean_optical_power * (self.samples_per_symbol_sim / self.bits_per_symbol) / (2 * snr_linear)
+        std = torch.sqrt(quad_var)
+        field_real = field_real + std * torch.randn_like(field_real)
+        field_imag = field_imag + std * torch.randn_like(field_imag)
+        return field_real, field_imag
+
+    def forward(self, drive, ase_ebn0_db=None):
+        """drive: (num_segments, num_samples) at the sim rate -> photocurrent: (num_samples,).
+        ase_ebn0_db=None -> noiseless; otherwise inject ASE on the field at that Eb/N0."""
         x = drive.unsqueeze(0)                                    # (1, segments, samples)
         filtered = self.segment_filter(x)                         # per-segment EO/driver low-pass
         # MEAN over segments -> phase ~ V_pi/2 mapping is N-segment invariant
@@ -106,10 +129,11 @@ class OpticalChannel(nn.Module):
         field_imag = field_imag * self.field_loss
         # chromatic dispersion in the optical band, on the complex envelope
         field_real, field_imag = self._apply_dispersion(field_real, field_imag)
+        # ASE beat noise: added to the FIELD (before the square law) -> signal-dependent
+        if ase_ebn0_db is not None:
+            field_real, field_imag = self._add_ase(field_real, field_imag, ase_ebn0_db)
 
         photocurrent = field_real.pow(2) + field_imag.pow(2)      # square-law detection
-        if add_noise and self.thermal_noise_std > 0:
-            photocurrent = photocurrent + self.thermal_noise_std * torch.randn_like(photocurrent)
         photocurrent = self.pd_filter(photocurrent)               # photodiode bandwidth
         return photocurrent.squeeze(0).squeeze(0)
 
@@ -125,7 +149,7 @@ if __name__ == "__main__":
     intensity = []
     for level in levels:
         drive = level * torch.ones(cfg.num_mzm_segments, 4096, device=device)
-        out = channel(drive, add_noise=False)
+        out = channel(drive)
         intensity.append(out[2048].item())
     print("segments  :", cfg.num_mzm_segments,
           "bandwidth scales:", cfg.segment_bandwidth_scales[:cfg.num_mzm_segments])
@@ -133,9 +157,9 @@ if __name__ == "__main__":
     print("DC drive  :", np.round(levels.cpu().numpy(), 2))
     print("intensity :", np.round(np.array(intensity), 4))
 
-    # gradient check: loss must backpropagate to the drive
+    # gradient check: loss must backpropagate to the drive (with ASE on)
     drive = torch.zeros(cfg.num_mzm_segments, 8192, device=device, requires_grad=True)
-    out = channel(drive, add_noise=False)
+    out = channel(drive, ase_ebn0_db=14.0)
     out.pow(2).mean().backward()
     print("grad to drive ok, mean|grad| =", float(drive.grad.abs().mean()))
     print("device:", device)

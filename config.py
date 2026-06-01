@@ -49,12 +49,16 @@ class Config:
         self.drive_min_volt = 0.0               # DPD output range: lower bound
         self.drive_max_volt = 5.0               # upper bound = Vpi -> monotonic half of MZM transfer,
                                                 # init (tanh=0) lands at quadrature (max slope, good gradient)
-        self.equispacing_weight = 2.0           # weight of the level-MSE term: pushes the DPD to make
-                                                # 4 EQUISPACED, Gray-ordered intensity levels (clean eye)
+        self.equispacing_weight = 2.0           # weight of the level-MSE term: pins 4 clean, Gray-ordered
+                                                # levels. The TARGET spacing depends on the noise regime
+                                                # (see equispacing_loss): equispaced INTENSITY for thermal,
+                                                # equispaced AMPLITUDE for ASE (Forestieri A.2, Fig. A.6).
 
         # ----- FFE (receiver DSP) -----
         self.ffe_memory_symbols = 11            # context window at the decision (odd -> centered)
-        self.ffe_hidden_width = 8
+        self.ffe_hidden_width = 8               # 16 was tested in the ASE regime: only ~0.5 dB at
+                                                # 20 dB, so the floor is NOT FFE capacity (it is the
+                                                # intensity-domain receiver vs the A.47 envelope bound)
 
         # ----- training -----
         self.num_symbols_train = 200_000        # long sequence (no tiny blocks; edges discarded)
@@ -64,6 +68,14 @@ class Config:
         self.e2e_epochs = 400                   # joint DPD+FFE epochs
         self.minibatch_symbols = 8192           # sliding-window minibatch length, in symbols
         self.learning_rate = 1e-3
+
+        # ----- noise regime -----
+        # "ase"        : amplified-spontaneous-emission (optical) beat noise, added to the
+        #                COMPLEX field before the photodiode -> signal-dependent after the
+        #                square law. Reference: Forestieri eq.(A.47). Electrical noise OFF.
+        # "electrical" : white Gaussian noise added to the photocurrent at the ADC (thermal/
+        #                electronics). Reference: Forestieri eq.(A.19).
+        self.noise_regime = "ase"
 
         # ----- noise sweep for the BER vs Eb/N0 curve -----
         self.ebn0_db_sweep = np.arange(6, 26, 2.0)
@@ -88,6 +100,7 @@ class Config:
         lines.append(f"photodiode bandwidth : {self.photodiode_bandwidth/1e9:.0f} GHz  (representable: {self.photodiode_bandwidth < self.sim_nyquist})")
         lines.append(f"MZM segments         : {self.num_mzm_segments}")
         lines.append(f"pulse shape          : RRC roll-off {self.rrc_rolloff}")
+        lines.append(f"noise regime         : {self.noise_regime}")
         return "\n".join(lines)
 
 

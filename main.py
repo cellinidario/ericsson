@@ -2,9 +2,9 @@
 deliverables — a clean eye diagram and a BER vs Eb/N0 waterfall against theory.
 
 The x-axis is Eb/N0 (energy per bit / one-sided N0) — the convention-free figure of
-merit, with no bandwidth choice to argue about. The theoretical PAM-4 curve from
-Forestieri eq.(A.19) is already BER(Eb/N0), so it is plotted directly. add_awgn takes
-the true Eb/N0 (one-sided N0) as its argument, so no conversion is needed here.
+merit, with no bandwidth choice to argue about. The theoretical reference is chosen by
+config.noise_regime: Forestieri eq.(A.19) for electrical noise, eq.(A.47) for the
+ASE-dominant regime (signal-spontaneous beat noise). Both are BER(Eb/N0) directly.
 """
 
 import os
@@ -20,7 +20,7 @@ from scipy.signal import resample_poly
 from config import Config
 from train import train, evaluate, random_bits
 from transmitter import bits_to_symbols
-from utils import theoretical_ber_unipolar, decision_phase_by_separation
+from utils import theoretical_ber_unipolar, theoretical_ber_unipolar_ase, decision_phase_by_separation
 
 
 def draw_eye(ax, photocurrent, samples_per_symbol, phase, title, fine_sps=40, skip=100, num_symbols=4000):
@@ -54,7 +54,7 @@ def main():
     with torch.no_grad():
         bits = random_bits(config.bits_per_symbol, 6000, device)
         symbols = bits_to_symbols(bits, config.bits_per_symbol).cpu().numpy()
-        photocurrent = channel(transmitter(bits), add_noise=False).cpu().numpy()
+        photocurrent = channel(transmitter(bits)).cpu().numpy()
     phase, levels = decision_phase_by_separation(photocurrent, sps, symbols)
     gaps = np.diff(np.sort(levels))
     print(f"\nlevel means (sym 0..3): {np.round(levels, 4)}")
@@ -64,8 +64,13 @@ def main():
     ebn0_db = np.arange(6, 22, 2.0)
     print("\n--- E2E ---")
     measured = evaluate(transmitter, channel, receiver, config, ebn0_db, 400000, device)
-    # Forestieri (A.19) is BER(Eb/N0) directly -> no conversion needed.
-    theory = theoretical_ber_unipolar(ebn0_db, config.modulation_order)
+    # theory reference depends on the noise regime (both are BER(Eb/N0) directly)
+    if config.noise_regime == "ase":
+        theory = theoretical_ber_unipolar_ase(ebn0_db, config.modulation_order)
+        theory_label = "Theory unipolar PAM-4 (ASE, A.47)"
+    else:
+        theory = theoretical_ber_unipolar(ebn0_db, config.modulation_order)
+        theory_label = "Theory unipolar PAM-4 (electrical, A.19)"
 
     # ----- figure: eye (left) + waterfall (right) -----
     fig, axes = plt.subplots(1, 2, figsize=(14, 5.5))
@@ -73,12 +78,12 @@ def main():
     # floor measured at the smallest resolvable BER (1/num_eval), theory is left unfloored
     measured_floor = np.maximum(measured, 1.0 / 400000)
     axes[1].semilogy(ebn0_db, measured_floor, "-o", linewidth=2, label="E2E autoencoder (DPD + FFE)")
-    axes[1].semilogy(ebn0_db, theory, "k--", linewidth=1.5, label="Theoretical unipolar PAM-4")
+    axes[1].semilogy(ebn0_db, theory, "k--", linewidth=1.5, label=theory_label)
     axes[1].grid(True, which="both", alpha=0.3)
     axes[1].set_xlabel(r"$E_b/N_0$ [dB]")
     axes[1].set_ylabel("BER")
     axes[1].set_ylim(1e-9, 1)
-    axes[1].set_title("BER vs Eb/N0")
+    axes[1].set_title(f"BER vs Eb/N0  ({config.noise_regime} noise)")
     axes[1].legend(loc="lower left")
 
     results_dir = os.path.join(os.path.dirname(__file__), "results")
@@ -95,8 +100,9 @@ def main():
         "ebn0_db": ebn0_db,
         "measured": measured,
     }
-    torch.save(checkpoint, os.path.join(results_dir, "pam4_baseline.pt"))
-    print("saved checkpoint pam4_baseline.pt")
+    checkpoint_name = f"pam4_{config.noise_regime}.pt"          # one checkpoint per noise regime
+    torch.save(checkpoint, os.path.join(results_dir, checkpoint_name))
+    print(f"saved checkpoint {checkpoint_name}")
 
 
 if __name__ == "__main__":

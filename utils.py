@@ -28,6 +28,25 @@ def theoretical_ber_unipolar(ebn0_db, modulation_order):
     return prefactor * q_function(np.sqrt(argument))
 
 
+def theoretical_ber_unipolar_ase(ebn0_db, modulation_order):
+    """Gray-mapped unipolar PAM-M BER in the ASE-noise-dominant regime (Forestieri eq. A.47).
+
+    Optically-preamplified receiver, signal-spontaneous beat noise dominant, equispaced
+    AMPLITUDE levels (A_m = (m-1)A), optimum thresholds. The decision variable is the field
+    amplitude (Ricean), so a Rayleigh-tail exp() term replaces one of the Gaussian tails:
+        BER = 1/(M*log2M) * [ exp(-(c/2)*Eb/N0) + (2M-3)*Q(sqrt(c*Eb/N0)) ],
+        c = 3*log2M / ((M-1)(2M-1))   (same Q-argument as the electrical regime, A.19).
+    Eb/N0 here is the photons-per-bit at the preamplifier input.
+    """
+    ebn0 = 10 ** (np.asarray(ebn0_db) / 10)
+    bits_per_symbol = np.log2(modulation_order)
+    coefficient = 3 * bits_per_symbol / ((modulation_order - 1) * (2 * modulation_order - 1))
+    prefactor = 1.0 / (modulation_order * bits_per_symbol)
+    rayleigh_tail = np.exp(-0.5 * coefficient * ebn0)
+    gaussian_tails = (2 * modulation_order - 3) * q_function(np.sqrt(coefficient * ebn0))
+    return prefactor * (rayleigh_tail + gaussian_tails)
+
+
 def theoretical_ber_bipolar(ebn0_db, modulation_order):
     """Gray-mapped conventional bipolar PAM-M BER (Forestieri et al.)."""
     ebn0 = 10 ** (np.asarray(ebn0_db) / 10)
@@ -137,6 +156,7 @@ def calibrate_ebn0_offset(reference_ber, ebn0_db_list, modulation_order):
 
 if __name__ == "__main__":
     ebn0 = np.arange(6, 22, 2.0)
-    print("Eb/N0 [dB]      :", ebn0)
-    print("unipolar PAM-4  :", np.array([f"{b:.1e}" for b in theoretical_ber_unipolar(ebn0, 4)]))
-    print("bipolar  PAM-4  :", np.array([f"{b:.1e}" for b in theoretical_ber_bipolar(ebn0, 4)]))
+    print("Eb/N0 [dB]        :", ebn0)
+    print("unipolar (elec)   :", np.array([f"{b:.1e}" for b in theoretical_ber_unipolar(ebn0, 4)]))
+    print("unipolar (ASE)    :", np.array([f"{b:.1e}" for b in theoretical_ber_unipolar_ase(ebn0, 4)]))
+    print("bipolar  (elec)   :", np.array([f"{b:.1e}" for b in theoretical_ber_bipolar(ebn0, 4)]))
