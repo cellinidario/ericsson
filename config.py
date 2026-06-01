@@ -44,6 +44,10 @@ class Config:
         # cutoff B_o/2 on the field (suppresses out-of-band ASE before the square law).
         # 37 GHz ~= R_s*(1+rolloff), matched to the signal optical band. None disables it.
         self.optical_filter_bandwidth = 37e9
+        self.optical_filter_type = "auto"       # AUTO: "matched" for ase (RRC matched to the pulse,
+                                                # A.47 optimum, ~2.5 dB -> ASE ~= thermal) and "brickwall"
+                                                # for thermal (matched would attenuate the signal and hurt
+                                                # the additive-noise case). Force with "matched"/"brickwall".
 
         # ----- photodiode -----
         self.photodiode_bandwidth = 25e9        # post-detection low-pass bandwidth
@@ -111,7 +115,13 @@ class Config:
         lines.append(f"MZM segments         : {self.num_mzm_segments}")
         lines.append(f"pulse shape          : RRC roll-off {self.rrc_rolloff}")
         lines.append(f"noise regime         : {self.noise_regime}")
-        lines.append(f"optical filter Bo    : {self.optical_filter_bandwidth/1e9:.0f} GHz" if self.optical_filter_bandwidth else "optical filter Bo    : none")
+        optical_type = self.optical_filter_type
+        if optical_type == "auto":
+            optical_type = "matched" if self.noise_regime == "ase" else "brickwall"
+        if self.optical_filter_bandwidth:
+            lines.append(f"optical filter       : {optical_type}, Bo {self.optical_filter_bandwidth/1e9:.0f} GHz")
+        else:
+            lines.append("optical filter       : none")
         companding = self.rx_sqrt_companding if self.rx_sqrt_companding is not None else (self.noise_regime == "ase")
         lines.append(f"rx sqrt companding   : {companding}")
         return "\n".join(lines)

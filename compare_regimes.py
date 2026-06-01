@@ -48,6 +48,7 @@ def load_or_train(regime, device):
     torch.save({"transmitter": transmitter.state_dict(), "receiver": receiver.state_dict(),
                 "config": {k: v for k, v in vars(config).items()},
                 "rx_sqrt_companding": bool(receiver.sqrt_companding),
+                "optical_filter_type": channel.optical_filter_type,
                 "ebn0_db": EBN0_DB, "measured": measured}, path)
     print(f"[{regime}] saved {path}")
     return config, EBN0_DB, measured

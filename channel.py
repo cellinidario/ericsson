@@ -26,6 +26,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from pulse_shaping import root_raised_cosine
+
 
 def lowpass_fir(cutoff_hz, sample_rate, num_taps):
     """Unit-DC-gain windowed-sinc low-pass FIR (odd length)."""
@@ -77,9 +79,19 @@ class OpticalChannel(nn.Module):
         # cutoff B_o/2 on the field -> the same real FIR applied to each quadrature. It suppresses
         # out-of-band ASE before the square law (cuts mainly the ASE-ASE beat). None = no filter.
         optical_bw = getattr(config, "optical_filter_bandwidth", None)
+        optical_type = getattr(config, "optical_filter_type", "auto")
+        if optical_type == "auto":               # matched for ase (preamp RX, A.47), brickwall for thermal
+            optical_type = "matched" if config.noise_regime == "ase" else "brickwall"
+        self.optical_filter_type = optical_type
         if optical_bw is not None and optical_bw < config.sim_sample_rate:
-            optical_taps = lowpass_fir(optical_bw / 2, config.sim_sample_rate, optical_filter_taps)
-            optical_weight = torch.tensor(optical_taps).flip(0).view(1, 1, -1)
+            if optical_type == "matched":
+                # optical filter matched to the signal pulse (RRC), unit-DC-gain -> A.47 optimum
+                rrc = root_raised_cosine(config.rrc_rolloff, config.rrc_span_symbols, config.samples_per_symbol_sim)
+                optical_taps = (rrc / rrc.sum()).astype(np.float32)
+            else:
+                # brick-wall: windowed-sinc low-pass at B_o/2
+                optical_taps = lowpass_fir(optical_bw / 2, config.sim_sample_rate, optical_filter_taps)
+            optical_weight = torch.tensor(optical_taps[::-1].copy()).view(1, 1, -1)
             self.optical_filter = nn.Conv1d(1, 1, kernel_size=len(optical_taps),
                                             padding=len(optical_taps) // 2, bias=False)
             self.optical_filter.weight = nn.Parameter(optical_weight)
