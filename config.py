@@ -45,9 +45,10 @@ class Config:
         # 37 GHz ~= R_s*(1+rolloff), matched to the signal optical band. None disables it.
         self.optical_filter_bandwidth = 37e9
         self.optical_filter_type = "auto"       # AUTO: "matched" for ase (RRC matched to the pulse,
-                                                # A.47 optimum, ~2.5 dB -> ASE ~= thermal) and "brickwall"
-                                                # for thermal (matched would attenuate the signal and hurt
-                                                # the additive-noise case). Force with "matched"/"brickwall".
+                                                # A.47 optimum, ~2.5 dB -> ASE ~= thermal) and "none" for
+                                                # thermal (no preamp -> no optical filter; any optical
+                                                # filtering only attenuates the signal there).
+                                                # Force with "matched" / "brickwall" / "none".
 
         # ----- photodiode -----
         self.photodiode_bandwidth = 25e9        # post-detection low-pass bandwidth
@@ -117,11 +118,11 @@ class Config:
         lines.append(f"noise regime         : {self.noise_regime}")
         optical_type = self.optical_filter_type
         if optical_type == "auto":
-            optical_type = "matched" if self.noise_regime == "ase" else "brickwall"
-        if self.optical_filter_bandwidth:
-            lines.append(f"optical filter       : {optical_type}, Bo {self.optical_filter_bandwidth/1e9:.0f} GHz")
-        else:
+            optical_type = "matched" if self.noise_regime == "ase" else "none"
+        if optical_type == "none" or not self.optical_filter_bandwidth:
             lines.append("optical filter       : none")
+        else:
+            lines.append(f"optical filter       : {optical_type}, Bo {self.optical_filter_bandwidth/1e9:.0f} GHz")
         companding = self.rx_sqrt_companding if self.rx_sqrt_companding is not None else (self.noise_regime == "ase")
         lines.append(f"rx sqrt companding   : {companding}")
         return "\n".join(lines)

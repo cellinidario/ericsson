@@ -74,29 +74,28 @@ class OpticalChannel(nn.Module):
         fiber_length_m = config.fiber_length_km * 1e3
         self.dispersion_coeff = 0.5 * beta2_s2_per_m * fiber_length_m   # [s^2], signed
 
-        # optical bandpass before the PD (preamplified receiver). In baseband (complex envelope,
-        # carrier at DC) the optical bandpass of full width B_o becomes a COMPLEX low-pass of
-        # cutoff B_o/2 on the field -> the same real FIR applied to each quadrature. It suppresses
-        # out-of-band ASE before the square law (cuts mainly the ASE-ASE beat). None = no filter.
+        # optical bandpass before the PD (only meaningful for a preamplified/ASE receiver). In
+        # baseband (carrier at DC) it is a COMPLEX low-pass on the field -> the same real FIR on
+        # each quadrature, before the square law, to suppress out-of-band ASE. Types: "matched"
+        # (RRC matched to the pulse, A.47 optimum), "brickwall" (windowed-sinc at B_o/2), "none".
         optical_bw = getattr(config, "optical_filter_bandwidth", None)
         optical_type = getattr(config, "optical_filter_type", "auto")
-        if optical_type == "auto":               # matched for ase (preamp RX, A.47), brickwall for thermal
-            optical_type = "matched" if config.noise_regime == "ase" else "brickwall"
-        self.optical_filter_type = optical_type
-        if optical_bw is not None and optical_bw < config.sim_sample_rate:
+        if optical_type == "auto":               # ase: matched (preamp RX); thermal: none (no preamp)
+            optical_type = "matched" if config.noise_regime == "ase" else "none"
+        if optical_type == "none" or optical_bw is None or optical_bw >= config.sim_sample_rate:
+            self.optical_filter = None
+            self.optical_filter_type = "none"
+        else:
             if optical_type == "matched":
-                # optical filter matched to the signal pulse (RRC), unit-DC-gain -> A.47 optimum
                 rrc = root_raised_cosine(config.rrc_rolloff, config.rrc_span_symbols, config.samples_per_symbol_sim)
                 optical_taps = (rrc / rrc.sum()).astype(np.float32)
             else:
-                # brick-wall: windowed-sinc low-pass at B_o/2
                 optical_taps = lowpass_fir(optical_bw / 2, config.sim_sample_rate, optical_filter_taps)
             optical_weight = torch.tensor(optical_taps[::-1].copy()).view(1, 1, -1)
             self.optical_filter = nn.Conv1d(1, 1, kernel_size=len(optical_taps),
                                             padding=len(optical_taps) // 2, bias=False)
             self.optical_filter.weight = nn.Parameter(optical_weight)
-        else:
-            self.optical_filter = None
+            self.optical_filter_type = optical_type
 
         # photodiode low-pass FIR (single channel: the photocurrent)
         pd_taps = lowpass_fir(config.photodiode_bandwidth, config.sim_sample_rate, pd_filter_taps)
