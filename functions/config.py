@@ -44,11 +44,14 @@ class Config:
         # cutoff B_o/2 on the field (suppresses out-of-band ASE before the square law).
         # 37 GHz ~= R_s*(1+rolloff), matched to the signal optical band. None disables it.
         self.optical_filter_bandwidth = 37e9
-        self.optical_filter_type = "auto"       # AUTO: "matched" for ase (RRC matched to the pulse,
-                                                # A.47 optimum, ~2.5 dB -> ASE ~= thermal) and "none" for
-                                                # thermal (no preamp -> no optical filter; any optical
-                                                # filtering only attenuates the signal there).
-                                                # Force with "matched" / "brickwall" / "none".
+        self.optical_filter_type = "auto"       # AUTO: "wss" for ase (the realistic Finisar WaveShaper the
+                                                # group uses; worse than the ideal "matched"/A.47 bound) and
+                                                # "none" for thermal (no preamp -> no optical filter).
+                                                # Force: "wss" / "supergaussian" / "matched" / "brickwall" / "none".
+        # WSS (Finisar WaveShaper) optical filter parameters (trans_func.m 'WSS')
+        self.wss_bandpass_factor = 1.6          # optical passband full width B = factor * symbol_rate
+        self.wss_otf_bandwidth = 18e9           # OTF 3-dB bandwidth (edge sharpness), fixed at 18 GHz
+        self.optical_filter_order = 4           # super-Gaussian order (only for "supergaussian" type)
 
         # ----- photodiode -----
         self.photodiode_bandwidth = 25e9        # post-detection low-pass bandwidth
@@ -118,7 +121,7 @@ class Config:
         lines.append(f"noise regime         : {self.noise_regime}")
         optical_type = self.optical_filter_type
         if optical_type == "auto":
-            optical_type = "matched" if self.noise_regime == "ase" else "none"
+            optical_type = "wss" if self.noise_regime == "ase" else "none"
         if optical_type == "none" or not self.optical_filter_bandwidth:
             lines.append("optical filter       : none")
         else:

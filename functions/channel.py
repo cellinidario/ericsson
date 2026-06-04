@@ -26,6 +26,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from scipy.special import erf
+
 from pulse_shaping import root_raised_cosine
 
 
@@ -39,6 +41,43 @@ def lowpass_fir(cutoff_hz, sample_rate, num_taps):
     ideal = normalized_cutoff * np.sinc(normalized_cutoff * n)
     window = np.hamming(num_taps)
     taps = ideal * window
+    taps = taps / np.sum(taps)
+    return taps.astype(np.float32)
+
+
+def supergaussian_fir(bw_3db_hz, order, sample_rate, num_taps):
+    """Super-Gaussian low-pass FIR: H(f) = exp(-0.5*ln2*(f/bw)^(2*order)) (the realistic optical
+    filter shape, as in trans_func.m). order=1 -> Gaussian; high order -> flat-top toward brick-wall.
+    bw_3db_hz is the 3-dB (power) bandwidth. Built by frequency sampling + IFFT, windowed."""
+    if num_taps % 2 == 0:
+        num_taps = num_taps + 1
+    n_fft = 8192
+    freq = np.fft.fftfreq(n_fft, d=1.0 / sample_rate)
+    transfer = np.exp(-0.5 * np.log(2) * (np.abs(freq) / bw_3db_hz) ** (2 * order))
+    impulse = np.fft.fftshift(np.fft.ifft(transfer).real)
+    center = n_fft // 2
+    half = num_taps // 2
+    taps = impulse[center - half:center + half + 1] * np.hamming(num_taps)
+    taps = taps / np.sum(taps)
+    return taps.astype(np.float32)
+
+
+def wss_fir(bandpass_hz, otf_bw_hz, sample_rate, num_taps):
+    """Finisar WaveShaper (WSS) optical bandpass, as in trans_func.m 'WSS' (Pulikkaseril, Opt.Exp.
+    2011): H(f) = 0.5*[erf((B/2 - f)/s) - erf((-B/2 - f)/s)], s = BWotf/(2*sqrt(ln2)). A flat-top
+    passband of full width bandpass_hz with Gaussian-smoothed edges set by the OTF 3-dB otf_bw_hz.
+    Built by frequency sampling + IFFT, windowed."""
+    if num_taps % 2 == 0:
+        num_taps = num_taps + 1
+    n_fft = 8192
+    freq = np.fft.fftfreq(n_fft, d=1.0 / sample_rate)
+    sigma = otf_bw_hz / (2 * np.sqrt(np.log(2)))
+    half_bp = 0.5 * bandpass_hz
+    transfer = 0.5 * (erf((half_bp - freq) / sigma) - erf((-half_bp - freq) / sigma))
+    impulse = np.fft.fftshift(np.fft.ifft(transfer).real)
+    center = n_fft // 2
+    half = num_taps // 2
+    taps = impulse[center - half:center + half + 1] * np.hamming(num_taps)
     taps = taps / np.sum(taps)
     return taps.astype(np.float32)
 
@@ -76,19 +115,26 @@ class OpticalChannel(nn.Module):
 
         # optical bandpass before the PD (only meaningful for a preamplified/ASE receiver). In
         # baseband (carrier at DC) it is a COMPLEX low-pass on the field -> the same real FIR on
-        # each quadrature, before the square law, to suppress out-of-band ASE. Types: "matched"
-        # (RRC matched to the pulse, A.47 optimum), "brickwall" (windowed-sinc at B_o/2), "none".
+        # each quadrature, before the square law, to suppress out-of-band ASE. Types: "wss" (Finisar
+        # WaveShaper, realistic), "supergaussian", "matched" (RRC, A.47 optimum), "brickwall", "none".
         optical_bw = getattr(config, "optical_filter_bandwidth", None)
         optical_type = getattr(config, "optical_filter_type", "auto")
-        if optical_type == "auto":               # ase: matched (preamp RX); thermal: none (no preamp)
-            optical_type = "matched" if config.noise_regime == "ase" else "none"
+        if optical_type == "auto":               # ase: realistic WSS (preamp RX); thermal: none
+            optical_type = "wss" if config.noise_regime == "ase" else "none"
         if optical_type == "none" or optical_bw is None or optical_bw >= config.sim_sample_rate:
             self.optical_filter = None
             self.optical_filter_type = "none"
         else:
-            if optical_type == "matched":
+            if optical_type == "wss":
+                bandpass = getattr(config, "wss_bandpass_factor", 1.6) * config.symbol_rate
+                otf = getattr(config, "wss_otf_bandwidth", 18e9)
+                optical_taps = wss_fir(bandpass, otf, config.sim_sample_rate, optical_filter_taps)
+            elif optical_type == "matched":
                 rrc = root_raised_cosine(config.rrc_rolloff, config.rrc_span_symbols, config.samples_per_symbol_sim)
                 optical_taps = (rrc / rrc.sum()).astype(np.float32)
+            elif optical_type == "supergaussian":
+                order = getattr(config, "optical_filter_order", 1)
+                optical_taps = supergaussian_fir(optical_bw / 2, order, config.sim_sample_rate, optical_filter_taps)
             else:
                 optical_taps = lowpass_fir(optical_bw / 2, config.sim_sample_rate, optical_filter_taps)
             optical_weight = torch.tensor(optical_taps[::-1].copy()).view(1, 1, -1)
