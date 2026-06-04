@@ -48,8 +48,8 @@ class Config:
                                                 # group uses; worse than the ideal "matched"/A.47 bound) and
                                                 # "none" for thermal (no preamp -> no optical filter).
                                                 # Force: "wss" / "supergaussian" / "matched" / "brickwall" / "none".
-        # WSS (Finisar WaveShaper) optical filter parameters (trans_func.m 'WSS')
-        self.wss_bandpass_factor = 1.6          # optical passband full width B = factor * symbol_rate
+        # WSS (Finisar WaveShaper) optical filter parameters (trans_func.m 'WSS'; Marco's values)
+        self.wss_bandpass_factor = 1.53         # optical passband full width B = factor * symbol_rate
         self.wss_otf_bandwidth = 18e9           # OTF 3-dB bandwidth (edge sharpness), fixed at 18 GHz
         self.optical_filter_order = 4           # super-Gaussian order (only for "supergaussian" type)
 
