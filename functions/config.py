@@ -73,10 +73,12 @@ class Config:
         self.ffe_hidden_width = 8               # 16 was tested in the ASE regime: only ~0.5 dB at
                                                 # 20 dB, so the floor is NOT FFE capacity (it is the
                                                 # intensity-domain receiver vs the A.47 envelope bound)
-        self.rx_sqrt_companding = None          # DSP sqrt after the ADC (photocurrent -> envelope):
-                                                # decide on amplitude. None = AUTO: ON for "ase" (beat
-                                                # noise is additive in amplitude) and OFF for "thermal"
-                                                # (noise additive in intensity -> sqrt hurts). True/False forces.
+        self.rx_sqrt_companding = None          # square-root transform after the ADC (photocurrent ->
+                                                # envelope: decide on amplitude). None = AUTO: ON for "ase"
+                                                # (beat noise additive in amplitude; worth ~0.5-0.7 dB with
+                                                # the WSS filter, 7.5e-6 vs 4e-5 @20 dB) and OFF for
+                                                # "thermal" (noise additive in intensity -> sqrt hurts).
+                                                # Future idea: let the DPD absorb it. True/False forces.
 
         # ----- training -----
         self.num_symbols_train = 200_000        # long sequence (no tiny blocks; edges discarded)
