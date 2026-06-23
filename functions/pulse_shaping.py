@@ -36,6 +36,21 @@ def root_raised_cosine(rolloff, span_symbols, samples_per_symbol):
     return taps
 
 
+def brickwall(cutoff_hz, sample_rate, span_symbols, samples_per_symbol):
+    """Unit-energy ideal-rect (brickwall) low-pass FIR: a windowed sinc with cutoff cutoff_hz.
+    rect(f) in frequency -> sinc(t) in time. With TX = RX (matched), rect*rect = rect stays
+    Nyquist (ISI-free at symbol instants when cutoff is a multiple of half the symbol rate).
+    This is Marco's JLT model choice: H_TX = H_RX = rect at the DAC/ADC Nyquist (no RRC).
+    """
+    num_taps = span_symbols * samples_per_symbol + 1
+    n = np.arange(num_taps) - (num_taps - 1) / 2
+    fc = cutoff_hz / (sample_rate / 2.0)                  # normalized to Nyquist (1.0 == fs/2)
+    taps = fc * np.sinc(fc * n)                           # ideal low-pass sinc
+    taps = taps * np.hamming(num_taps)                    # window the truncation
+    taps = taps / np.sqrt(np.sum(taps ** 2))             # unit energy (matched-filter consistent)
+    return taps
+
+
 def upsample_and_shape(symbol_levels, rrc_taps, samples_per_symbol):
     """Zero-stuff the symbol-rate levels by samples_per_symbol, then RRC filter.
 

@@ -86,8 +86,11 @@ class OpticalChannel(nn.Module):
     def __init__(self, config, segment_filter_taps=65, pd_filter_taps=65, optical_filter_taps=65):
         super().__init__()
         self.num_segments = config.num_mzm_segments
+        self.modulator = getattr(config, "modulator", "mzm")      # "mzm" | "linear" (ideal baseline)
         self.vpi = config.mzm_vpi_volt
         self.bias_volt = config.mzm_vpi_volt                      # default operating point
+        self.drive_min = config.drive_min_volt                   # for the linear-modulator power mapping
+        self.drive_max = config.drive_max_volt
         extinction_linear = config.extinction_ratio_linear
         self.gamma = (np.sqrt(extinction_linear) - 1) / (np.sqrt(extinction_linear) + 1)
         self.field_loss = float(np.sqrt(config.fiber_loss_linear))
@@ -190,14 +193,24 @@ class OpticalChannel(nn.Module):
         ase_ebn0_db=None -> noiseless; otherwise inject ASE on the field at that Eb/N0."""
         x = drive.unsqueeze(0)                                    # (1, segments, samples)
         filtered = self.segment_filter(x)                         # per-segment EO/driver low-pass
-        # MEAN over segments -> phase ~ V_pi/2 mapping is N-segment invariant
-        drive_combined = filtered.sum(dim=1, keepdim=True) / self.num_segments
+        # sum over segments -> total arm phase (each segment adds phase; Marco's sum(v,2))
+        drive_combined = filtered.sum(dim=1, keepdim=True)
 
-        phase = (np.pi / (2 * self.vpi)) * (drive_combined - self.bias_volt)
-        field_real = 0.5 * (1 + self.gamma) * torch.cos(phase)
-        field_imag = 0.5 * (1 - self.gamma) * torch.sin(phase)
-        field_real = field_real * self.field_loss
-        field_imag = field_imag * self.field_loss
+        # modulator: drive -> optical field.
+        #   "mzm"    : E = 1/2 ( exp(j*phi) + gamma*exp(-j*phi) ),  phi = pi/(2*Vpi)*(V - Vbias),
+        #              gamma = (sqrt(ER)-1)/(sqrt(ER)+1) sets the finite extinction ratio.
+        #   "linear" : ideal linear-INTENSITY modulator (optical power proportional to drive, chirp-free
+        #              field = sqrt(power)) -- removes ONLY the MZM nonlinearity.
+        # Everything after -- dispersion, ASE, optical filter, square-law photodiode -- is KEPT for both.
+        if self.modulator == "linear":
+            power = (drive_combined - self.drive_min) / (self.drive_max - self.drive_min)
+            field_real = torch.sqrt(F.relu(power) + 1e-6) * self.field_loss   # eps tames the sqrt slope at P~0
+            field_imag = torch.zeros_like(field_real)
+        else:
+            arg = (np.pi / (2 * self.vpi)) * (drive_combined - self.bias_volt)
+            field = 0.5 * (torch.exp(1j * arg) + self.gamma * torch.exp(-1j * arg))
+            field_real = field.real * self.field_loss
+            field_imag = field.imag * self.field_loss
         # chromatic dispersion in the optical band, on the complex envelope
         field_real, field_imag = self._apply_dispersion(field_real, field_imag)
         # ASE beat noise: added to the FIELD (before the square law) -> signal-dependent

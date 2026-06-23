@@ -106,7 +106,9 @@ def ideal_reference_ber(ebn0_db_list, config, num_symbols=300000, device="cuda")
     mf_kernel = torch.tensor(mf_taps, dtype=torch.float32, device=device).view(1, 1, -1)
 
     symbols = torch.randint(0, 4, (num_symbols,), device=device)
-    levels = symbols.float()                                # ideal levels 0,1,2,3
+    gray = torch.tensor([0, 1, 3, 2], device=device)        # symbol -> amplitude rank, Gray (ideal-reference only)
+    levels = gray[symbols].float()                          # Gray-ordered: adjacent amplitudes differ by 1 bit
+                                                            # (binary order would cost 1.33x BER vs the A.19 bound)
     upsampled = torch.zeros(num_symbols * sps, device=device)
     upsampled[::sps] = levels
     clean = F.conv1d(upsampled.view(1, 1, -1), tx_kernel, padding=tx_kernel.shape[-1] // 2)
@@ -119,10 +121,11 @@ def ideal_reference_ber(ebn0_db_list, config, num_symbols=300000, device="cuda")
         grid = matched[:num_symbols * sps].reshape(num_symbols, sps)
         phase = grid[200:-200].var(0).argmax()
         decision = grid[:, phase]
-        level_means = torch.tensor([decision[symbols == q].mean() for q in range(4)], device=device)
+        level_means = torch.tensor([decision[levels == a].mean() for a in range(4)], device=device)  # by amplitude -> monotonic
         thresholds = (level_means[:3] + level_means[1:]) / 2
-        estimated = torch.bucketize(decision, thresholds)
-        est_bits = torch.stack([(estimated >> 1) & 1, estimated & 1]).to(torch.int64)
+        est_rank = torch.bucketize(decision, thresholds)
+        est_sym = gray[est_rank]                             # decode amplitude rank -> symbol (Gray is an involution)
+        est_bits = torch.stack([(est_sym >> 1) & 1, est_sym & 1]).to(torch.int64)
         ber = (est_bits[:, 200:-200] != bits[:, 200:-200]).float().mean().item()
         results.append(ber)
     return np.array(results)
