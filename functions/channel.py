@@ -225,6 +225,26 @@ class OpticalChannel(nn.Module):
         photocurrent = self.pd_filter(photocurrent)               # photodiode bandwidth
         return photocurrent.squeeze(0).squeeze(0)
 
+    def coherent_field(self, drive, ase_ebn0_db=None):
+        """Noisy optical field (modulator + dispersion + ASE), BEFORE the optical filter and the
+        square law. For the A.47 coherent ENVELOPE receiver: matched-filter each quadrature, then
+        take |z| = sqrt(zr^2 + zi^2). Returns (field_real, field_imag), each (num_samples,)."""
+        x = drive.unsqueeze(0)
+        drive_combined = self.segment_filter(x).sum(dim=1, keepdim=True)
+        if self.modulator == "linear":
+            power = (drive_combined - self.drive_min) / (self.drive_max - self.drive_min)
+            field_real = torch.sqrt(F.relu(power) + 1e-6) * self.field_loss
+            field_imag = torch.zeros_like(field_real)
+        else:
+            arg = (np.pi / (2 * self.vpi)) * (drive_combined - self.bias_volt)
+            field = 0.5 * (torch.exp(1j * arg) + self.gamma * torch.exp(-1j * arg))
+            field_real = field.real * self.field_loss
+            field_imag = field.imag * self.field_loss
+        field_real, field_imag = self._apply_dispersion(field_real, field_imag)
+        if ase_ebn0_db is not None:
+            field_real, field_imag = self._add_ase(field_real, field_imag, ase_ebn0_db)
+        return field_real.squeeze(0).squeeze(0), field_imag.squeeze(0).squeeze(0)
+
 
 if __name__ == "__main__":
     from config import Config

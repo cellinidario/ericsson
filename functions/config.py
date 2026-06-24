@@ -10,11 +10,11 @@ import numpy as np
 class Config:
     # standard single-mode-fibre parameters per band (textbook SMF; refine with Marco's numbers)
     WAVELENGTH_BANDS = {
-        "back2back": {"wavelength_nm": 1310.0, "fiber_beta2_ps2_per_km": 0.0,   "fiber_loss_db_per_km": 0.0},
-        "oband":     {"wavelength_nm": 1310.0, "fiber_beta2_ps2_per_km": -1.0,  "fiber_loss_db_per_km": 0.32},
-        "cband":     {"wavelength_nm": 1550.0, "fiber_beta2_ps2_per_km": -21.7, "fiber_loss_db_per_km": 0.20},
+        "back-to-back": {"wavelength_nm": 1310.0, "fiber_beta2_ps2_per_km": 0.0,   "fiber_loss_db_per_km": 0.0},
+        "oband":        {"wavelength_nm": 1310.0, "fiber_beta2_ps2_per_km": -1.0,  "fiber_loss_db_per_km": 0.32},
+        "cband":        {"wavelength_nm": 1550.0, "fiber_beta2_ps2_per_km": -21.7, "fiber_loss_db_per_km": 0.20},
     }
-    # "back2back" = transparent fibre (no dispersion, no loss; output = input)
+    # "back-to-back" = transparent fibre (no dispersion, no loss; output = input)
 
     def __init__(self):
         # ===== scenario knobs (flip these per experiment; the notebook sets the same names) =====

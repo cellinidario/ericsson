@@ -111,38 +111,60 @@ def evaluate(transmitter, channel, receiver, config, ebn0_db_list, num_symbols, 
 
 
 def evaluate_threshold(transmitter, channel, receiver, config, ebn0_db_list, num_symbols, device):
-    """A.19-reference detector (config.equalizer == "threshold"): matched filter / integrate-and-dump, then
-    GENIE optimum thresholds (midway between the measured level means) + Gray decode. No DPD, no FFE.
-    The TX emits fixed equispaced-intensity levels; this is exactly Forestieri's optimum receiver."""
+    """Optimum threshold detector = the A.19 / A.47 reference (config.equalizer == "threshold"). No DPD/FFE.
+      thermal (A.19): decide on the integrated photocurrent (intensity); genie optimum thresholds (midway
+                      between the measured level means); Gray.
+      ase (A.47)    : COHERENT matched filter on the field + envelope |z| = sqrt(zr^2 + zi^2); Forestieri's
+                      thresholds (midway between the NOISELESS signal amplitudes); Gray.
+    The TX emits the regime's optimum fixed levels (equispaced intensity for A.19, amplitude for A.47)."""
     transmitter.eval()
     receiver.eval()
     M = config.modulation_order
     k = config.bits_per_symbol
     guard = config.edge_guard_symbols
-    gray = torch.tensor([0, 1, 3, 2], device=device)[:M]          # symbol <-> intensity rank (involution)
+    gray = torch.tensor([0, 1, 3, 2], device=device)[:M]          # symbol <-> rank (involution)
     results = []
     with torch.no_grad():
         bits = random_bits(k, num_symbols, device)
         symbols = bits_to_symbols(bits, k)
         rank = gray[symbols]
-        for ebn0_db in ebn0_db_list:
-            photo = link_photocurrent(transmitter, channel, bits, ebn0_db, config)
-            stream = receiver.matched_and_decimate(photo).squeeze()        # (num_symbols,) at the symbol rate
-            best = 1.0                                                      # small group-delay shift search
-            for shift in range(-2, 3):
-                r = torch.roll(rank, shift)
-                means = torch.stack([stream[r == a].mean() for a in range(M)])
-                if not torch.all(means[1:] > means[:-1]):
-                    continue
-                thresholds = (means[:-1] + means[1:]) / 2                   # optimum: midway between levels
-                est_rank = torch.bucketize(stream, thresholds).clamp(max=M - 1)
-                est_sym = gray[est_rank]
-                est_bits = torch.stack([(est_sym >> (k - 1 - i)) & 1 for i in range(k)])
-                ref = torch.roll(bits, shift, dims=1)
-                ber = (est_bits[:, guard:-guard] != ref[:, guard:-guard]).float().mean().item()
-                best = min(best, ber)
-            results.append(best)
-            print(f"Eb/N0 {ebn0_db:5.1f} dB   BER {best:.3e}   (threshold detector)")
+
+        def decode(stream, thresholds, shift):
+            est = gray[torch.bucketize(stream, thresholds).clamp(max=M - 1)]
+            est_bits = torch.stack([(est >> (k - 1 - i)) & 1 for i in range(k)])
+            ref = torch.roll(bits, shift, dims=1)
+            return (est_bits[:, guard:-guard] != ref[:, guard:-guard]).float().mean().item()
+
+        if config.noise_regime == "ase":
+            def envelope(ebn0_db):                                # coherent matched filter on the field, then |z|
+                fr, fi = channel.coherent_field(transmitter(bits), ebn0_db)
+                zr = receiver.matched_and_decimate(fr).squeeze()
+                zi = receiver.matched_and_decimate(fi).squeeze()
+                return torch.sqrt(zr ** 2 + zi ** 2)
+            z0 = envelope(None)                                   # noiseless signal envelope -> thresholds
+            sig, best_shift = None, 0
+            for shift in range(-2, 3):                            # align on the noiseless level separation
+                means = torch.stack([z0[torch.roll(rank, shift) == a].mean() for a in range(M)])
+                if torch.all(means[1:] > means[:-1]) and (sig is None or
+                                                          means.max() - means.min() > sig.max() - sig.min()):
+                    sig, best_shift = means, shift
+            thresholds = (sig[:-1] + sig[1:]) / 2                 # Forestieri: midway between signal amplitudes
+            for ebn0_db in ebn0_db_list:
+                ber = decode(envelope(ebn0_db), thresholds, best_shift)
+                results.append(ber)
+                print(f"Eb/N0 {ebn0_db:5.1f} dB   BER {ber:.3e}   (envelope detector, A.47)")
+        else:
+            for ebn0_db in ebn0_db_list:
+                stream = receiver.matched_and_decimate(
+                    link_photocurrent(transmitter, channel, bits, ebn0_db, config)).squeeze()
+                best = 1.0                                        # small group-delay shift search
+                for shift in range(-2, 3):
+                    means = torch.stack([stream[torch.roll(rank, shift) == a].mean() for a in range(M)])
+                    if not torch.all(means[1:] > means[:-1]):
+                        continue
+                    best = min(best, decode(stream, (means[:-1] + means[1:]) / 2, shift))
+                results.append(best)
+                print(f"Eb/N0 {ebn0_db:5.1f} dB   BER {best:.3e}   (threshold detector, A.19)")
     return np.array(results)
 
 

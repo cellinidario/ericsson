@@ -36,6 +36,7 @@ class Transmitter(nn.Module):
         self.drive_max = config.drive_max_volt
         self.equalizer = getattr(config, "equalizer", "end-to-end")   # "end-to-end" -> DPD; else fixed levels
         self.pulse_kind = getattr(config, "tx_filter", "rrc")
+        self.noise_regime = getattr(config, "noise_regime", "thermal")
 
         self.memory = config.dpd_memory_symbols
         hidden = config.dpd_hidden_width
@@ -43,9 +44,13 @@ class Transmitter(nn.Module):
         self.context_layer = nn.Linear(self.memory * self.num_bits, hidden)
         self.segment_layer = nn.Linear(hidden, self.num_segments)
 
-        # fixed equispaced-INTENSITY levels (Gray) for the non-DPD modes ("ffe", None) = the A.19 constellation
+        # fixed optimum levels (Gray) for the non-DPD modes ("ffe", "threshold"):
+        #   thermal (A.19): equispaced INTENSITY  (intensity ~ rank   -> linear drive ~ rank)
+        #   ase     (A.47): equispaced AMPLITUDE  (intensity ~ rank^2 -> linear drive ~ rank^2)
         gray_rank = torch.tensor([0, 1, 3, 2], dtype=torch.float32)[: self.modulation_order]
-        fixed = self.drive_min + (self.drive_max - self.drive_min) * gray_rank / (self.modulation_order - 1)
+        norm_rank = gray_rank / (self.modulation_order - 1)
+        frac = norm_rank ** 2 if self.noise_regime == "ase" else norm_rank
+        fixed = self.drive_min + (self.drive_max - self.drive_min) * frac
         self.register_buffer("fixed_levels", fixed)                # symbol -> drive level
 
         # TX pulse: "time-rect" = one-symbol rectangle (sample-and-hold, no convolution); the band-limited
