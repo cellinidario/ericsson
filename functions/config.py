@@ -34,11 +34,11 @@ class Config:
                                                 #                 TX, integrate-and-dump at RX). Confined to the
                                                 #                 symbol -> no overlap -> reaches A.19 with a wide
                                                 #                 front-end. ("rect" is kept as an alias of freq-rect.)
-        self.equalizer = "joint"                # detection/equalization stage:
-                                                #   "joint" : DPD (TX) + FFE (RX) trained together (the E2E)
-                                                #   "ffe"   : FFE only (RX); TX uses fixed equispaced-intensity levels
-                                                #   None    : threshold detector only (no DPD, no FFE) -> the A.19
-                                                #             reference (fixed optimum levels + optimum thresholds)
+        self.equalizer = "end-to-end"           # detection/equalization stage:
+                                                #   "end-to-end" : DPD (TX) + FFE (RX) trained together (the E2E)
+                                                #   "ffe"        : FFE only (RX); TX uses fixed equispaced-intensity levels
+                                                #   "threshold"  : threshold detector only (no DPD, no FFE) -> the A.19
+                                                #                  reference (fixed optimum levels + optimum thresholds)
 
         # ===== link / modulation =====
         self.symbol_rate = 20e9                 # baud (OFC paper: 20 GBaud)
@@ -149,8 +149,8 @@ class Config:
         else:
             lines.append(f"pulse shape          : TX {pulse_names.get(self.tx_filter, self.tx_filter)} / "
                          f"RX {pulse_names.get(self.rx_filter, self.rx_filter)}")
-        eq_names = {"joint": "DPD (TX) + FFE (RX), trained jointly", "ffe": "FFE only (fixed TX levels)",
-                    None: "threshold detector (no DPD/FFE -> A.19 reference)"}
+        eq_names = {"end-to-end": "DPD (TX) + FFE (RX), trained jointly", "ffe": "FFE only (fixed TX levels)",
+                    "threshold": "threshold detector (no DPD/FFE -> A.19 reference)"}
         lines.append(f"equalizer            : {eq_names.get(self.equalizer, self.equalizer)}")
         lines.append(f"wavelength band      : {self.wavelength_band}  ({self.wavelength_nm:.0f} nm, "
                      f"beta2 {self.fiber_beta2_ps2_per_km:.1f} ps^2/km, L {self.fiber_length_km:.3f} km, "

@@ -64,13 +64,13 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
     window = config.minibatch_symbols + 2 * config.edge_guard_symbols
     guard = config.edge_guard_symbols
     sps = config.samples_per_symbol_sim
-    equalizer = getattr(config, "equalizer", "joint")
-    if equalizer is None:                                     # threshold detector: nothing to train
-        print("=== equalizer=None -> threshold detector (A.19 reference), no training ===")
+    equalizer = getattr(config, "equalizer", "end-to-end")
+    if equalizer == "threshold":                              # threshold detector: nothing to train
+        print("=== equalizer='threshold' -> threshold detector (A.19 reference), no training ===")
         return transmitter, channel, receiver
     params = list(receiver.parameters())                      # "ffe": train the FFE only (TX levels fixed)
-    if equalizer == "joint":
-        params = list(transmitter.parameters()) + params      # "joint": also train the DPD
+    if equalizer == "end-to-end":
+        params = list(transmitter.parameters()) + params      # "end-to-end": also train the DPD
     optimizer = torch.optim.Adam(params, lr=config.learning_rate)
     print(f"=== training (equalizer={equalizer}) — symbol cross-entropy ===")
     for step in range(num_steps):
@@ -111,7 +111,7 @@ def evaluate(transmitter, channel, receiver, config, ebn0_db_list, num_symbols, 
 
 
 def evaluate_threshold(transmitter, channel, receiver, config, ebn0_db_list, num_symbols, device):
-    """A.19-reference detector (config.equalizer is None): matched filter / integrate-and-dump, then
+    """A.19-reference detector (config.equalizer == "threshold"): matched filter / integrate-and-dump, then
     GENIE optimum thresholds (midway between the measured level means) + Gray decode. No DPD, no FFE.
     The TX emits fixed equispaced-intensity levels; this is exactly Forestieri's optimum receiver."""
     transmitter.eval()

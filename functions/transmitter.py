@@ -34,12 +34,12 @@ class Transmitter(nn.Module):
         self.samples_per_symbol = config.samples_per_symbol_sim
         self.drive_min = config.drive_min_volt
         self.drive_max = config.drive_max_volt
-        self.equalizer = getattr(config, "equalizer", "joint")     # "joint" -> DPD; else fixed levels
+        self.equalizer = getattr(config, "equalizer", "end-to-end")   # "end-to-end" -> DPD; else fixed levels
         self.pulse_kind = getattr(config, "tx_filter", "rrc")
 
         self.memory = config.dpd_memory_symbols
         hidden = config.dpd_hidden_width
-        # DPD: fully-connected layers over a sliding window of `memory` symbols (used only when equalizer == "joint")
+        # DPD: fully-connected layers over a sliding window of `memory` symbols (used only when equalizer == "end-to-end")
         self.context_layer = nn.Linear(self.memory * self.num_bits, hidden)
         self.segment_layer = nn.Linear(hidden, self.num_segments)
 
@@ -64,7 +64,7 @@ class Transmitter(nn.Module):
     def forward(self, bits):
         """bits: (num_bits, num_symbols) -> drive waveform: (num_segments, num_symbols * sps)."""
         num_symbols = bits.shape[1]
-        if self.equalizer == "joint":
+        if self.equalizer == "end-to-end":
             x = bits.unsqueeze(0).float()                      # (1, num_bits, num_symbols)
             pad = self.memory // 2                             # sliding window of `memory` symbols
             x_pad = F.pad(x, (pad, pad))
