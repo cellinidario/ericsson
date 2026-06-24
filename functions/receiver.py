@@ -33,7 +33,7 @@ class Receiver(nn.Module):
         # reshape-sum in matched_and_decimate); the boxcar buffer below is only used by the eye-diagram cell.
         if self.pulse_kind == "time-rect":
             taps = np.ones(self.samples_per_symbol_sim, dtype=np.float32)
-            matched_taps = taps / np.sqrt((taps ** 2).sum())
+            matched_taps = taps / taps.sum()                     # unit gain: averages the symbol (held A -> A)
         elif self.pulse_kind in ("freq-rect", "rect"):
             matched_taps = brickwall(config.rect_filter_bandwidth, config.sim_sample_rate,
                                      config.rrc_span_symbols, self.samples_per_symbol_sim)
@@ -54,7 +54,7 @@ class Receiver(nn.Module):
         if self.pulse_kind == "time-rect":
             sps = self.samples_per_symbol_sim
             n = photocurrent.shape[-1] // sps
-            return photocurrent[:n * sps].view(n, sps).sum(dim=1).view(1, 1, -1)
+            return photocurrent[:n * sps].view(n, sps).mean(dim=1).view(1, 1, -1)   # integrate-and-dump, unit gain
         x = F.conv1d(photocurrent.view(1, 1, -1), self.matched, padding=self.matched.shape[-1] // 2)
         return x[:, :, ::self.decimation]
 
