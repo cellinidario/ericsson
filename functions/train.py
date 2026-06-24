@@ -42,18 +42,25 @@ def level_gap_spread(photocurrent, symbols, samples_per_symbol, guard, modulatio
     return (gaps.std() / (gaps.mean().abs() + 1e-9)).item()
 
 
-def link_photocurrent(transmitter, channel, bits, ebn0_db, config):
+def link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver=None):
     """Photocurrent with noise injected per the configured regime: ASE on the optical field
     (inside the channel) or thermal/electrical AWGN on the photocurrent (at the ADC)."""
     drive = transmitter(bits)
     if config.noise_regime == "ase":
+        if getattr(config, "rx_filter", None) == "time-rect" and receiver is not None:
+            # Optical matched filter abstraction for ASE to reach A.47
+            xr, xi = channel.complex_envelope(drive, ebn0_db)
+            mr = receiver.matched_and_decimate(xr).squeeze(0).squeeze(0)
+            mi = receiver.matched_and_decimate(xi).squeeze(0).squeeze(0)
+            z2 = mr ** 2 + mi ** 2
+            return z2.repeat_interleave(config.samples_per_symbol_sim)
         return channel(drive, ase_ebn0_db=ebn0_db)
     photocurrent = channel(drive)
     return add_awgn(photocurrent, ebn0_db, config.bits_per_symbol, config.samples_per_symbol_sim)
 
 
 def forward_link(transmitter, channel, receiver, bits, ebn0_db, config):
-    return receiver(link_photocurrent(transmitter, channel, bits, ebn0_db, config))
+    return receiver(link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver))
 
 
 def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
@@ -79,7 +86,15 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
         symbols = bits_to_symbols(bits, config.bits_per_symbol)
         drive = transmitter(bits)
         if config.noise_regime == "ase":
-            noisy = channel(drive, ase_ebn0_db=ebn0_db)           # ASE beat noise on the field
+            if getattr(config, "rx_filter", None) == "time-rect":
+                # Optical matched filter abstraction for ASE to reach A.47
+                xr, xi = channel.complex_envelope(drive, ebn0_db)
+                mr = receiver.matched_and_decimate(xr).squeeze(0).squeeze(0)
+                mi = receiver.matched_and_decimate(xi).squeeze(0).squeeze(0)
+                z2 = mr ** 2 + mi ** 2
+                noisy = z2.repeat_interleave(sps)
+            else:
+                noisy = channel(drive, ase_ebn0_db=ebn0_db)           # ASE beat noise on the field
         else:
             noisy = add_awgn(channel(drive), ebn0_db, config.bits_per_symbol, sps)
         logits = receiver(noisy)                                  # (num_symbols, M) symbol logits
@@ -136,23 +151,27 @@ def evaluate_threshold(transmitter, channel, receiver, config, ebn0_db_list, num
             return (est_bits[:, guard:-guard] != ref[:, guard:-guard]).float().mean().item()
 
         if config.noise_regime == "ase":
-            def envelope(ebn0_db):                                # coherent matched filter on the field, then |z|
-                fr, fi = channel.coherent_field(transmitter(bits), ebn0_db)
-                zr = receiver.matched_and_decimate(fr).squeeze()
-                zi = receiver.matched_and_decimate(fi).squeeze()
-                return torch.sqrt(zr ** 2 + zi ** 2)
-            z0 = envelope(None)                                   # noiseless signal envelope -> thresholds
+            # Direct detection (Forestieri Fig. A.4): the optical matched filter ho(t)=p*(T-t) shapes the
+            # field x(t), the square-law photodiode forms the photocurrent z^2 = |x*ho|^2; decide on z^2
+            # with thresholds = (midpoint between the amplitude levels)^2 (= the Fig. A.5 thresholds, squared).
+            def photocurrent(ebn0_db):
+                xr, xi = channel.complex_envelope(transmitter(bits), ebn0_db)      # noisy complex envelope x+n
+                mr = receiver.matched_and_decimate(xr).squeeze()                   # optical matched filter, per quadrature
+                mi = receiver.matched_and_decimate(xi).squeeze()
+                return mr ** 2 + mi ** 2                                           # square-law photodiode -> z^2
+            z2 = photocurrent(None)                                                # noiseless signal photocurrent
             sig, best_shift = None, 0
-            for shift in range(-2, 3):                            # align on the noiseless level separation
-                means = torch.stack([z0[torch.roll(rank, shift) == a].mean() for a in range(M)])
+            for shift in range(-2, 3):                                             # align on the level separation
+                means = torch.stack([z2[torch.roll(rank, shift) == a].mean() for a in range(M)])
                 if torch.all(means[1:] > means[:-1]) and (sig is None or
                                                           means.max() - means.min() > sig.max() - sig.min()):
                     sig, best_shift = means, shift
-            thresholds = (sig[:-1] + sig[1:]) / 2                 # Forestieri: midway between signal amplitudes
+            amp = torch.sqrt(sig.clamp(min=0))                                     # field amplitudes A_m = sqrt(z^2)
+            thresholds = ((amp[:-1] + amp[1:]) / 2) ** 2                           # (amplitude midpoint)^2  (Fig. A.4)
             for ebn0_db in ebn0_db_list:
-                ber = decode(envelope(ebn0_db), thresholds, best_shift)
+                ber = decode(photocurrent(ebn0_db), thresholds, best_shift)
                 results.append(ber)
-                print(f"Eb/N0 {ebn0_db:5.1f} dB   BER {ber:.3e}   (envelope detector, A.47)")
+                print(f"Eb/N0 {ebn0_db:5.1f} dB   BER {ber:.3e}   (direct detection, A.47)")
         else:
             for ebn0_db in ebn0_db_list:
                 stream = receiver.matched_and_decimate(

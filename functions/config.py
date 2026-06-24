@@ -77,8 +77,8 @@ class Config:
         # field, before the square law, to suppress out-of-band ASE. 37 GHz ~= R_s*(1+rolloff).
         self.optical_filter_bandwidth = 37e9
         self.optical_filter_type = "auto"       # AUTO: "wss" for ase (the realistic Finisar WaveShaper the
-                                                # group uses), "none" for thermal (no preamp -> no filter).
-                                                # Force: "wss" / "supergaussian" / "matched" / "brickwall" / "none".
+                                                # group uses), None for thermal (no preamp -> no filter).
+                                                # Force: "wss" / "supergaussian" / "matched" / "brickwall" / None.
         self.wss_bandpass_factor = 1.53         # WSS passband full width B = factor * symbol_rate (Marco's value)
         self.wss_otf_bandwidth = 18e9           # WSS OTF 3-dB bandwidth (edge sharpness)
         self.optical_filter_order = 4           # super-Gaussian order ("supergaussian" type only)
@@ -158,8 +158,8 @@ class Config:
         lines.append(f"noise regime         : {self.noise_regime}")
         optical_type = self.optical_filter_type
         if optical_type == "auto":
-            optical_type = "wss" if self.noise_regime == "ase" else "none"
-        if optical_type == "none" or not self.optical_filter_bandwidth:
+            optical_type = "wss" if self.noise_regime == "ase" else None
+        if optical_type is None or not self.optical_filter_bandwidth:
             lines.append("optical filter       : none")
         else:
             lines.append(f"optical filter       : {optical_type}, Bo {self.optical_filter_bandwidth/1e9:.0f} GHz")

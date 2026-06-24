@@ -119,14 +119,14 @@ class OpticalChannel(nn.Module):
         # optical bandpass before the PD (only meaningful for a preamplified/ASE receiver). In
         # baseband (carrier at DC) it is a COMPLEX low-pass on the field -> the same real FIR on
         # each quadrature, before the square law, to suppress out-of-band ASE. Types: "wss" (Finisar
-        # WaveShaper, realistic), "supergaussian", "matched" (RRC, A.47 optimum), "brickwall", "none".
+        # WaveShaper, realistic), "supergaussian", "matched" (RRC, A.47 optimum), "brickwall", None.
         optical_bw = getattr(config, "optical_filter_bandwidth", None)
         optical_type = getattr(config, "optical_filter_type", "auto")
         if optical_type == "auto":               # ase: realistic WSS (preamp RX); thermal: none
-            optical_type = "wss" if config.noise_regime == "ase" else "none"
-        if optical_type == "none" or optical_bw is None or optical_bw >= config.sim_sample_rate:
+            optical_type = "wss" if config.noise_regime == "ase" else None
+        if optical_type is None or optical_bw is None or optical_bw >= config.sim_sample_rate:
             self.optical_filter = None
-            self.optical_filter_type = "none"
+            self.optical_filter_type = None
         else:
             if optical_type == "wss":
                 bandpass = getattr(config, "wss_bandpass_factor", 1.6) * config.symbol_rate
@@ -225,10 +225,13 @@ class OpticalChannel(nn.Module):
         photocurrent = self.pd_filter(photocurrent)               # photodiode bandwidth
         return photocurrent.squeeze(0).squeeze(0)
 
-    def coherent_field(self, drive, ase_ebn0_db=None):
-        """Noisy optical field (modulator + dispersion + ASE), BEFORE the optical filter and the
-        square law. For the A.47 coherent ENVELOPE receiver: matched-filter each quadrature, then
-        take |z| = sqrt(zr^2 + zi^2). Returns (field_real, field_imag), each (num_samples,)."""
+    def complex_envelope(self, drive, ase_ebn0_db=None):
+        """Noisy complex envelope x(t) + n(t) of the optical signal (modulator + dispersion + ASE),
+        BEFORE the optical filter and the photodiode -- Forestieri's x(t). The A.47 receiver applies
+        the optical matched filter ho(t) = p*(T-t) to it; the square-law photodiode then forms the
+        photocurrent |.|^2 (direct/incoherent detection, Forestieri Fig. A.4). The same BER follows
+        from the equivalent envelope-detector view (Fig. A.5: decide on z = sqrt(|.|^2), thresholds in
+        amplitude). Returns (real, imag) of the field, each (num_samples,)."""
         x = drive.unsqueeze(0)
         drive_combined = self.segment_filter(x).sum(dim=1, keepdim=True)
         if self.modulator == "linear":

@@ -51,7 +51,7 @@ class Transmitter(nn.Module):
         norm_rank = gray_rank / (self.modulation_order - 1)
         frac = norm_rank ** 2 if self.noise_regime == "ase" else norm_rank
         fixed = self.drive_min + (self.drive_max - self.drive_min) * frac
-        self.register_buffer("fixed_levels", fixed)                # symbol -> drive level
+        self.register_buffer("fixed_levels", fixed, persistent=False)   # derived from config -> not in state_dict
 
         # TX pulse: "time-rect" = one-symbol rectangle (sample-and-hold, no convolution); the band-limited
         # pulses ("rrc", "freq-rect"/"rect") are FIR-convolved (unit-peak: symbol-instant drive == level).
