@@ -100,6 +100,8 @@ class Config:
                                                 # memory is ~1 symbol, so 11 taps are already generous
         self.ffe_hidden_width = 8               # nonlinear capacity. Small effect in O-band/ASE, but a STRONG
                                                 # lever in C-band (the nonlinear CD distortion: ~3.7x at 20 dB)
+        self.ffe_nonlinear = True               # True: leaky-ReLU FFE (nonlinear). False: a purely LINEAR
+                                                # FFE (no activation) -> the classical linear equalizer baseline
 
         # ===== training =====
         self.edge_guard_symbols = 64            # symbols dropped at both ends (filter transients)

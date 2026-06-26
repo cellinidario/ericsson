@@ -3,10 +3,13 @@
 The matched filter limits the photocurrent to the signal band before decimation, so
 sampling down to samples_per_symbol_rx is alias-free. The FFE is two fully-connected
 layers over a sliding window of `ffe_memory_symbols * samples_per_symbol_rx` samples,
-producing SYMBOL logits (M-way) per symbol, trained by symbol cross-entropy. Per-bit
-posteriors (Marco's P(b_i|context)) are recovered by marginalizing the symbol softmax
-(see bit_posteriors). Symbol cross-entropy keeps the constellation from collapsing
-(per-bit BCE could abandon a bit -> a degenerate local minimum); the levels are LEARNED.
+producing SYMBOL logits (M-way) per symbol, trained by symbol cross-entropy. Symbol CE
+keeps the constellation from collapsing (per-bit BCE alone could abandon a bit -> a
+degenerate local minimum); the levels are LEARNED, not imposed. The per-bit LLRs for
+soft-FEC (Marco's P(b_i|context), the "bitwise" output) are recovered by marginalizing
+the symbol softmax over the bit<->symbol map (bit_posteriors). Pass the amplitude-Gray
+map (train.amplitude_gray_bits) so adjacent levels differ by one bit -> reaches the A.19
+bound; the default binary map costs the 4/3 (~1.33x) Gray penalty.
 """
 
 import os
@@ -46,6 +49,7 @@ class Receiver(nn.Module):
         self.window_size = config.ffe_memory_symbols * self.samples_per_symbol_rx
         self.context_layer = nn.Linear(self.window_size, hidden)
         self.symbol_head = nn.Linear(hidden, self.modulation_order)   # M-way symbol classifier
+        self.ffe_nonlinear = getattr(config, "ffe_nonlinear", True)   # False -> purely linear FFE (no activation)
 
     def matched_and_decimate(self, photocurrent):
         """Matched filter + downsample to the symbol rate -> (1, 1, num_symbols * sps_rx).
@@ -58,8 +62,8 @@ class Receiver(nn.Module):
         x = F.conv1d(photocurrent.view(1, 1, -1), self.matched, padding=self.matched.shape[-1] // 2)
         return x[:, :, ::self.decimation]
 
-    def forward(self, photocurrent):
-        """photocurrent: (num_samples,) at the sim rate -> symbol logits: (num_symbols, M)."""
+    def features(self, photocurrent):
+        """Shared FFE features per symbol: (1, num_symbols, hidden)."""
         x = self.matched_and_decimate(photocurrent)
         # sliding window of `window_size` samples, stride = samples_per_symbol_rx -> one window per symbol
         pad = (self.window_size - self.samples_per_symbol_rx) // 2
@@ -67,17 +71,28 @@ class Receiver(nn.Module):
         windows = x_pad.unfold(2, self.window_size, self.samples_per_symbol_rx)   # (1, 1, num_symbols, window_size)
         num_symbols = windows.shape[2]
         flat = windows.permute(0, 2, 1, 3).reshape(1, num_symbols, -1)            # (1, num_symbols, window_size)
-        hidden = F.leaky_relu(self.context_layer(flat))                           # (1, num_symbols, hidden)
-        symbol_logits = self.symbol_head(hidden).squeeze(0)                       # (num_symbols, M)
-        return symbol_logits
+        hidden = self.context_layer(flat)                                         # (1, num_symbols, hidden)
+        if self.ffe_nonlinear:
+            hidden = F.leaky_relu(hidden)                                         # nonlinear FFE (linear if False)
+        return hidden
+
+    def forward(self, photocurrent):
+        """photocurrent: (num_samples,) at the sim rate -> symbol logits: (num_symbols, M)."""
+        return self.symbol_head(self.features(photocurrent)).squeeze(0)           # (num_symbols, M)
 
 
-def bit_posteriors(symbol_logits, num_bits):
+def bit_posteriors(symbol_logits, num_bits, symbol_bits=None):
     """Per-bit posteriors P(b_i = 1) from the symbol softmax: (num_bits, num_symbols).
-    Bit convention matches transmitter.bits_to_symbols: symbol = sum_i b_i * 2**(num_bits-1-i)."""
+    symbol_bits: optional (M, num_bits) map giving each symbol's bit labels (e.g. the amplitude-Gray
+    map from train.amplitude_gray_bits). Default None -> the BINARY map matching bits_to_symbols
+    (symbol = sum_i b_i * 2**(num_bits-1-i)), which carries the 4/3 Gray penalty for the E2E."""
     probs = torch.softmax(symbol_logits, dim=-1)                  # (num_symbols, M)
-    sym = torch.arange(probs.shape[-1], device=probs.device)
-    bits = [probs[:, ((sym >> (num_bits - 1 - i)) & 1) == 1].sum(dim=-1) for i in range(num_bits)]
+    if symbol_bits is None:
+        sym = torch.arange(probs.shape[-1], device=probs.device)
+        bits = [probs[:, ((sym >> (num_bits - 1 - i)) & 1) == 1].sum(dim=-1) for i in range(num_bits)]
+    else:
+        mask = symbol_bits.to(probs.device, probs.dtype)          # (M, num_bits)
+        bits = [(probs * mask[:, i]).sum(dim=-1) for i in range(num_bits)]
     return torch.stack(bits)                                      # (num_bits, num_symbols)
 
 

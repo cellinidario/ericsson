@@ -48,12 +48,16 @@ def link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver=None
     drive = transmitter(bits)
     if config.noise_regime == "ase":
         if getattr(config, "rx_filter", None) == "time-rect" and receiver is not None:
-            # Optical matched filter abstraction for ASE to reach A.47
+            # Optical matched filter on the field, then the ENVELOPE |z| = sqrt(zr^2 + zi^2) as the decision
+            # statistic (Forestieri's envelope detector, Fig. A.5). Deciding on the amplitude (not the
+            # intensity z^2) is what lets the E2E reach A.47: the ASE noise is ~Gaussian on the field, so the
+            # optimal symbol logit is quadratic in the amplitude z; on z^2 it would need sqrt(z^2)=|z|, a
+            # nonlinearity the small FFE represents poorly -> a gap that blows up at high SNR.
             xr, xi = channel.complex_envelope(drive, ebn0_db)
             mr = receiver.matched_and_decimate(xr).squeeze(0).squeeze(0)
             mi = receiver.matched_and_decimate(xi).squeeze(0).squeeze(0)
-            z2 = mr ** 2 + mi ** 2
-            return z2.repeat_interleave(config.samples_per_symbol_sim)
+            envelope = torch.sqrt((mr ** 2 + mi ** 2).clamp(min=0))
+            return envelope.repeat_interleave(config.samples_per_symbol_sim)
         return channel(drive, ase_ebn0_db=ebn0_db)
     photocurrent = channel(drive)
     return add_awgn(photocurrent, ebn0_db, config.bits_per_symbol, config.samples_per_symbol_sim)
@@ -63,8 +67,49 @@ def forward_link(transmitter, channel, receiver, bits, ebn0_db, config):
     return receiver(link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver))
 
 
+def gray_code(n):
+    """Standard reflected binary Gray code of integer n."""
+    return n ^ (n >> 1)
+
+
+def amplitude_gray_bits(transmitter, channel, receiver, config, device, num_symbols=40000):
+    """Map each symbol to its Gray-by-AMPLITUDE bits: (M, num_bits) long tensor.
+    Sort the learned level means low->high and label them with the Gray code (00,01,11,10,...), so
+    adjacent levels differ by one bit. This is the standard PAM amplitude-Gray labelling that A.19
+    assumes and that the threshold detector already uses (gray=[0,1,3,2]); it removes the 4/3 (~1.33x)
+    penalty the binary map costs the E2E (whose symbol<->level ordering is arbitrary). It only LABELS
+    the learned levels (no constellation prior). Calibrated from the noiseless decision statistic."""
+    M = config.modulation_order
+    k = config.bits_per_symbol
+    guard = config.edge_guard_symbols
+    with torch.no_grad():
+        bits = random_bits(k, num_symbols, device)
+        symbols = bits_to_symbols(bits, k)
+        stat = receiver.matched_and_decimate(
+            link_photocurrent(transmitter, channel, bits, 40.0, config, receiver)).reshape(-1)  # ~noiseless
+        n = min(stat.shape[0], symbols.shape[0])
+        stat, syms = stat[:n], symbols[:n]
+        best_means = None                                          # align stat<->symbol (max level separation)
+        for shift in range(-2, 3):
+            rolled = torch.roll(syms, shift)
+            means = torch.stack([stat[guard:n - guard][rolled[guard:n - guard] == m].mean() for m in range(M)])
+            if not torch.all(torch.isfinite(means)):
+                continue
+            if best_means is None or (means.max() - means.min()) > (best_means.max() - best_means.min()):
+                best_means = means
+        order = torch.argsort(best_means)                          # symbols, low -> high amplitude
+    mapping = torch.zeros(M, k, dtype=torch.long, device=device)
+    for rank in range(M):
+        code = gray_code(rank)
+        mapping[int(order[rank])] = torch.tensor([(code >> (k - 1 - i)) & 1 for i in range(k)], device=device)
+    return mapping
+
+
 def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
-    """Single-stage joint DPD+FFE training, BCE only: the constellation is LEARNED, not imposed."""
+    """Single-stage joint DPD+FFE training with SYMBOL cross-entropy. The constellation/levels are
+    LEARNED, not imposed (no equispacing/level target). Symbol CE keeps the 4 levels distinct (per-bit
+    BCE alone could abandon a bit -> a degenerate collapse). The per-bit LLRs are recovered at eval by
+    marginalizing the softmax over the amplitude-Gray map (amplitude_gray_bits)."""
     transmitter = Transmitter(config).to(device)
     channel = OpticalChannel(config).to(device)
     receiver = Receiver(config).to(device)
@@ -84,19 +129,7 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
         ebn0_db = float(np.random.uniform(*ebn0_range))
         bits = random_bits(config.bits_per_symbol, window, device)
         symbols = bits_to_symbols(bits, config.bits_per_symbol)
-        drive = transmitter(bits)
-        if config.noise_regime == "ase":
-            if getattr(config, "rx_filter", None) == "time-rect":
-                # Optical matched filter abstraction for ASE to reach A.47
-                xr, xi = channel.complex_envelope(drive, ebn0_db)
-                mr = receiver.matched_and_decimate(xr).squeeze(0).squeeze(0)
-                mi = receiver.matched_and_decimate(xi).squeeze(0).squeeze(0)
-                z2 = mr ** 2 + mi ** 2
-                noisy = z2.repeat_interleave(sps)
-            else:
-                noisy = channel(drive, ase_ebn0_db=ebn0_db)           # ASE beat noise on the field
-        else:
-            noisy = add_awgn(channel(drive), ebn0_db, config.bits_per_symbol, sps)
+        noisy = link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver)  # ASE -> envelope; thermal -> photocurrent
         logits = receiver(noisy)                                  # (num_symbols, M) symbol logits
         n = logits.shape[0]
         loss = F.cross_entropy(logits[guard:n - guard], symbols[guard:n - guard])   # symbol CE: no collapse, no imposed levels
@@ -106,20 +139,25 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
         if step % max(1, num_steps // 8) == 0 or step == num_steps - 1:
             ber, _ = measure_ber(bit_posteriors(logits, config.bits_per_symbol), bits, guard)
             with torch.no_grad():
-                spread = level_gap_spread(channel(drive), symbols, sps, guard, config.modulation_order)
-            print(f"  step {step:4d}  ebn0 {ebn0_db:4.1f}  ce {loss.item():.4f}  gap-spread {spread:.3f}  BER {ber:.4f}")
+                spread = level_gap_spread(channel(transmitter(bits)), symbols, sps, guard, config.modulation_order)
+            print(f"  step {step:4d}  ebn0 {ebn0_db:4.1f}  ce {loss.item():.8f}  gap-spread {spread:.3f}  BER {ber:.10f}")
     return transmitter, channel, receiver
 
 
 def evaluate(transmitter, channel, receiver, config, ebn0_db_list, num_symbols, device):
     transmitter.eval()
     receiver.eval()
+    k = config.bits_per_symbol
+    # amplitude-Gray labelling of the LEARNED levels -> per-bit LLRs reach A.19 (no 4/3 binary penalty)
+    sym_bits = amplitude_gray_bits(transmitter, channel, receiver, config, device)
     results = []
     with torch.no_grad():
-        bits = random_bits(config.bits_per_symbol, num_symbols, device)
+        bits = random_bits(k, num_symbols, device)
+        ref_bits = sym_bits[bits_to_symbols(bits, k)].T                    # (k, N) amplitude-Gray reference
         for ebn0_db in ebn0_db_list:
             logits = forward_link(transmitter, channel, receiver, bits, ebn0_db, config)
-            ber, shift = measure_ber(bit_posteriors(logits, config.bits_per_symbol), bits, config.edge_guard_symbols)
+            post = bit_posteriors(logits, k, symbol_bits=sym_bits)         # P(b_i = 1) under amplitude-Gray
+            ber, shift = measure_ber(post, ref_bits, config.edge_guard_symbols)
             results.append(ber)
             print(f"Eb/N0 {ebn0_db:5.1f} dB   BER {ber:.3e}   (shift {shift})")
     return np.array(results)
