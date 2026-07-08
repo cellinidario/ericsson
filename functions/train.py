@@ -47,7 +47,11 @@ def link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver=None
     (inside the channel) or thermal/electrical AWGN on the photocurrent (at the ADC)."""
     drive = transmitter(bits)
     if config.noise_regime == "ase":
-        if getattr(config, "rx_filter", None) == "time-rect" and receiver is not None:
+        if (getattr(config, "rx_filter", None) == "time-rect" and receiver is not None
+                and getattr(config, "modulation_format", "upam-4") != "bpam-4"):
+            # (unipolar only: the per-symbol envelope statistic below is 1/symbol; bpam-4 needs the
+            # 2-sps photocurrent from the plain channel path, where the optical filter on the field
+            # creates the T/2 interference the receiver reads.)
             # Optical matched filter on the field, then the ENVELOPE |z| = sqrt(zr^2 + zi^2) as the decision
             # statistic (Forestieri's envelope detector, Fig. A.5). Deciding on the amplitude (not the
             # intensity z^2) is what lets the E2E reach A.47: the ASE noise is ~Gaussian on the field, so the
@@ -120,11 +124,69 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
     if equalizer == "threshold":                              # threshold detector: nothing to train
         print("=== equalizer='threshold' -> threshold detector (A.19 reference), no training ===")
         return transmitter, channel, receiver
+    bpam = getattr(config, "modulation_format", "upam-4") == "bpam-4"
+
+    # WARM-START (bpam-4 E2E): break the TX<->RX co-adaptation deadlock that keeps from-scratch joint
+    # training in a quasi-unipolar local min. This is BASIN SELECTION, not answer-imposition: after the two
+    # priming phases the network is fine-tuned FREELY and the constellation stays learned (it rediscovers the
+    # optimal |A2/A1| and can beat the classical detector). Needs the differential precoder in E2E.
+    if bpam and equalizer == "end-to-end" and getattr(config, "bpam_warm_start", False):
+        if not getattr(transmitter, "precode_e2e", False):
+            raise RuntimeError("bpam_warm_start needs bpam_precode_e2e=True (classical BPAM alphabet)")
+        # Phase 0 -- distil the DPD onto the classical BPAM constellation (supervised MSE to fixed_levels).
+        tx_opt = torch.optim.Adam(transmitter.parameters(), lr=config.learning_rate)
+        for _ in range(getattr(config, "warm_distill_steps", 8000)):
+            bits = random_bits(config.bits_per_symbol, window, device)
+            coded = transmitter._precode_bpam(bits)
+            target = transmitter.fixed_levels[(coded[0] * 2 + coded[1]).long()]     # classical drive/symbol
+            drive = transmitter.symbol_drive_levels(bits)[0]
+            tx_opt.zero_grad(); F.mse_loss(drive, target).backward(); tx_opt.step()
+        # Phase 1 -- RX-only: let the FFE learn to decode the (now classical-BPAM) TX before joint fine-tune.
+        rx_opt = torch.optim.Adam(receiver.parameters(), lr=config.learning_rate)
+        for _ in range(getattr(config, "warm_rxonly_steps", 15000)):
+            ebn0_db = float(np.random.uniform(*ebn0_range))
+            bits = random_bits(config.bits_per_symbol, window, device)
+            noisy = link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver)
+            logits = receiver(noisy); n = logits.shape[0]
+            post = bit_posteriors(logits[guard:n - guard], config.bits_per_symbol)
+            rx_opt.zero_grad()
+            F.binary_cross_entropy(post.clamp(1e-6, 1 - 1e-6), bits[:, guard:n - guard].float()).backward()
+            rx_opt.step()
+        print("=== warm-start done (TX distilled to classical BPAM, RX primed) -> free joint fine-tune ===")
+
+    # STAGED CURRICULUM (bpam-4 E2E): break the deadlock WITHOUT imposing any constellation. (1) joint train
+    # at low SNR, where the ~2 dB BPAM advantage makes the loss prefer bipolar signalling, so the TX
+    # self-organizes bipolar; (2) freeze the TX and train the RX to convergence, so it learns to decode that
+    # bipolar TX (the RX was the piece that floored when co-adapting); (3) free joint fine-tune (main loop).
+    if bpam and equalizer == "end-to-end" and getattr(config, "bpam_curriculum", False):
+        if not getattr(transmitter, "precode_e2e", False):
+            raise RuntimeError("bpam_curriculum needs bpam_precode_e2e=True (sign otherwise undecodable in DD)")
+        def _bce(bits_b, logits_b):
+            m = logits_b.shape[0]
+            post = bit_posteriors(logits_b[guard:m - guard], config.bits_per_symbol)
+            return F.binary_cross_entropy(post.clamp(1e-6, 1 - 1e-6), bits_b[:, guard:m - guard].float())
+        # Stage 1 -- joint at low SNR (TX self-organizes bipolar; no imposed levels)
+        lo = getattr(config, "curr_lowsnr_ebn0", 10.0)
+        opt1 = torch.optim.Adam(list(transmitter.parameters()) + list(receiver.parameters()), lr=config.learning_rate)
+        for _ in range(getattr(config, "curr_lowsnr_steps", 20000)):
+            bits = random_bits(config.bits_per_symbol, window, device)
+            noisy = link_photocurrent(transmitter, channel, bits, lo, config, receiver)
+            opt1.zero_grad(); _bce(bits, receiver(noisy)).backward(); opt1.step()
+        # Stage 2 -- freeze TX, train RX to convergence over the full SNR range
+        opt2 = torch.optim.Adam(receiver.parameters(), lr=config.learning_rate)
+        for _ in range(getattr(config, "curr_rxonly_steps", 20000)):
+            ebn0_db = float(np.random.uniform(*ebn0_range))
+            bits = random_bits(config.bits_per_symbol, window, device)
+            noisy = link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver)
+            opt2.zero_grad(); _bce(bits, receiver(noisy)).backward(); opt2.step()
+        print("=== curriculum priming done (TX self-organized bipolar @low SNR, RX converged) -> joint fine-tune ===")
+
     params = list(receiver.parameters())                      # "ffe": train the FFE only (TX levels fixed)
     if equalizer == "end-to-end":
         params = list(transmitter.parameters()) + params      # "end-to-end": also train the DPD
     optimizer = torch.optim.Adam(params, lr=config.learning_rate)
-    print(f"=== training (equalizer={equalizer}) — symbol cross-entropy ===")
+    loss_name = "symbol CE + per-bit BCE" if bpam else "symbol cross-entropy"
+    print(f"=== training (equalizer={equalizer}) — {loss_name} ===")
     for step in range(num_steps):
         ebn0_db = float(np.random.uniform(*ebn0_range))
         bits = random_bits(config.bits_per_symbol, window, device)
@@ -132,7 +194,23 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
         noisy = link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver)  # ASE -> envelope; thermal -> photocurrent
         logits = receiver(noisy)                                  # (num_symbols, M) symbol logits
         n = logits.shape[0]
-        loss = F.cross_entropy(logits[guard:n - guard], symbols[guard:n - guard])   # symbol CE: no collapse, no imposed levels
+        if bpam:
+            # bpam-4 double-rate route: COMBINED loss = symbol cross-entropy + per-bit BCE. With sub-symbol
+            # waveform freedom the TX rides each bit on an independent T/2 slot (double-rate OOK/hybrid), the
+            # 4 symbols are absolutely DD-observable, and this goes below the symbol-rate PAM theory. BCE
+            # alone abandons one bit (BER 0.25 collapse); the CE term keeps the 4 symbols distinct for the
+            # whole training, BCE keeps the per-bit posteriors calibrated (soft-FEC LLRs).
+            posteriors = bit_posteriors(logits[guard:n - guard], config.bits_per_symbol)   # (k, n) P(b=1)
+            bce = F.binary_cross_entropy(posteriors.clamp(1e-6, 1 - 1e-6), bits[:, guard:n - guard].float())
+            if getattr(config, "bpam_loss", "ce+bce") == "bce":
+                loss = bce                                       # true BPAM: allow sign-degenerate intensities
+            else:
+                ce = F.cross_entropy(logits[guard:n - guard], symbols[guard:n - guard])
+                loss = ce + bce                                  # double-rate/hybrid: CE keeps 4 levels distinct
+        else:
+            # upam-4: symbol cross-entropy (no collapse, no imposed levels). Measured: factorized bit
+            # losses (BCE, soft-BER) fail the A.19 gate AND collapse on upam.
+            loss = F.cross_entropy(logits[guard:n - guard], symbols[guard:n - guard])
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -148,8 +226,12 @@ def evaluate(transmitter, channel, receiver, config, ebn0_db_list, num_symbols, 
     transmitter.eval()
     receiver.eval()
     k = config.bits_per_symbol
-    # amplitude-Gray labelling of the LEARNED levels -> per-bit LLRs reach A.19 (no 4/3 binary penalty)
-    sym_bits = amplitude_gray_bits(transmitter, channel, receiver, config, device)
+    if getattr(config, "modulation_format", "upam-4") == "bpam-4":
+        # bpam-4: the BCE training target pins the bit labelling to the plain BINARY map -> same map here
+        sym_bits = torch.tensor([[0, 0], [0, 1], [1, 0], [1, 1]], dtype=torch.long, device=device)
+    else:
+        # amplitude-Gray labelling of the LEARNED levels -> per-bit LLRs reach A.19 (no 4/3 binary penalty)
+        sym_bits = amplitude_gray_bits(transmitter, channel, receiver, config, device)
     results = []
     with torch.no_grad():
         bits = random_bits(k, num_symbols, device)
@@ -163,6 +245,81 @@ def evaluate(transmitter, channel, receiver, config, ebn0_db_list, num_symbols, 
     return np.array(results)
 
 
+def _optimized_threshold(stat, labels, num_candidates=200):
+    """Numerically optimized binary decision threshold (Secondini2020 optimizes all thresholds
+    numerically, Sec. III: with square-law detection they are not midway between the levels)."""
+    lo = stat[labels == 0]
+    hi = stat[labels == 1]
+    candidates = torch.linspace(float(lo.median()), float(hi.median()), num_candidates, device=stat.device)
+    errors = torch.stack([(lo > c).float().mean() + (hi <= c).float().mean() for c in candidates])
+    return candidates[int(errors.argmin())]
+
+
+def _evaluate_threshold_bpam(transmitter, channel, receiver, config, ebn0_db_list, num_symbols, device):
+    """Classical BPAM-4/DD detector of Secondini2020 as the no-DSP reference.
+    Even (symbol-centre) samples of the photocurrent give the AMPLITUDE bit through an optimized
+    threshold; the odd (T/2) samples, which sense the interference between adjacent pulses, form the
+    auxiliary variable z_k = y'_k - c*(y_k + y_{k+1}) (their eq. 9; c = |h+-1/h0|^2 = 0.25, the ideal
+    value, held fixed as in their realistic scenarios) and give the DIFFERENTIAL phase bit through a
+    second optimized threshold. Thresholds are optimized on a training half and the BER is measured on
+    the held-out half. ASE (optical-noise) regime only -- the regime the BPAM format targets."""
+    if config.noise_regime != "ase":
+        raise NotImplementedError("bpam-4 threshold detector: ASE regime only (the regime BPAM targets)")
+    if config.samples_per_symbol_rx != 2:
+        raise RuntimeError("bpam-4 needs samples_per_symbol_rx = 2 (config.set_modulation_format sets it)")
+    guard = max(config.edge_guard_symbols, 8)
+    results = []
+    with torch.no_grad():
+        bits = random_bits(2, num_symbols, device)        # row 0: amplitude bit, row 1: phase-difference bit
+        drive = transmitter(bits)                         # differential sign precoding happens inside the TX
+
+        def z2_stream(ebn0_db):
+            xr, xi = channel.complex_envelope(drive, ebn0_db)
+            mr = receiver.matched_and_decimate(xr).reshape(-1)
+            mi = receiver.matched_and_decimate(xi).reshape(-1)
+            return mr ** 2 + mi ** 2                      # photocurrent at 2 samples/symbol, interleaved
+
+        # alignment on the noiseless statistic: sampling parity (which interleave is the symbol centre)
+        # and integer symbol shift, chosen to maximize the amplitude-group separation on the even samples
+        s0 = z2_stream(None)
+        n = s0.shape[0] // 2
+        best = None
+        for parity in (0, 1):
+            even0 = s0[parity::2][:n]
+            for shift in range(-2, 3):
+                a = torch.roll(bits[0, :n], shift)
+                separation = even0[a == 1].mean() - even0[a == 0].mean()
+                if best is None or separation > best[0]:
+                    best = (separation, parity, shift)
+        _, parity, shift = best
+        amp_ref = torch.roll(bits[0, :n], shift)
+        ph_ref = torch.roll(bits[1, :n], shift)
+        half = n // 2                                     # thresholds trained on [0:half], BER on [half:n]
+        for ebn0_db in ebn0_db_list:
+            s = z2_stream(ebn0_db)
+            even = s[parity::2][:n]
+            odd = s[1 - parity::2][:n]
+            amp_thr = _optimized_threshold(even[guard:half], amp_ref[guard:half])
+            amp_err = ((even[half:n - guard] > amp_thr).long() != amp_ref[half:n - guard]).float().mean()
+            # The T/2 sample odd_k straddles either the pulse pair (k, k+1) or (k-1, k), depending on the
+            # decimation phase. The SUBTRACTED even samples in z (eq. 9) must be the SAME pair, and the
+            # phase-bit label aligns accordingly: pair (k, k+1) -> z_k senses dphi_{k+1} (shift by 1);
+            # pair (k-1, k) -> z_k senses dphi_k. Try both on the training half, keep the better.
+            best_ph = None
+            for direction in (-1, +1):                    # -1: pair (k, k+1);  +1: pair (k-1, k)
+                z = odd - 0.25 * even - 0.25 * torch.roll(even, direction)
+                zr = torch.roll(z, 1) if direction == -1 else z    # align z to dphi_k
+                ph_thr = _optimized_threshold(-zr[guard:half], ph_ref[guard:half])
+                train_err = ((-zr[guard:half] > ph_thr).long() != ph_ref[guard:half]).float().mean()
+                test_err = ((-zr[half:n - guard] > ph_thr).long() != ph_ref[half:n - guard]).float().mean()
+                if best_ph is None or train_err < best_ph[0]:
+                    best_ph = (train_err, test_err)
+            ber = 0.5 * float(amp_err) + 0.5 * float(best_ph[1])
+            results.append(ber)
+            print(f"Eb/N0 {ebn0_db:5.1f} dB   BER {ber:.3e}   (BPAM threshold detector)")
+    return np.array(results)
+
+
 def evaluate_threshold(transmitter, channel, receiver, config, ebn0_db_list, num_symbols, device):
     """Optimum threshold detector = the A.19 / A.47 reference (config.equalizer == "threshold"). No DPD/FFE.
       thermal (A.19): decide on the integrated photocurrent (intensity); genie optimum thresholds (midway
@@ -172,6 +329,9 @@ def evaluate_threshold(transmitter, channel, receiver, config, ebn0_db_list, num
     The TX emits the regime's optimum fixed levels (equispaced intensity for A.19, amplitude for A.47)."""
     transmitter.eval()
     receiver.eval()
+    if getattr(config, "modulation_format", "upam-4") == "bpam-4":
+        return _evaluate_threshold_bpam(transmitter, channel, receiver, config, ebn0_db_list,
+                                        num_symbols, device)
     M = config.modulation_order
     k = config.bits_per_symbol
     guard = config.edge_guard_symbols
@@ -204,6 +364,12 @@ def evaluate_threshold(transmitter, channel, receiver, config, ebn0_db_list, num
                 if torch.all(means[1:] > means[:-1]) and (sig is None or
                                                           means.max() - means.min() > sig.max() - sig.min()):
                     sig, best_shift = means, shift
+            if sig is None:
+                raise RuntimeError(
+                    "evaluate_threshold (ase): no shift gives 4 strictly increasing intensity means -- "
+                    "the per-symbol statistic does not separate the levels (heavy ISI, e.g. freq-rect, "
+                    "or a misaligned sampling phase). This simple threshold reference only applies to "
+                    "low-ISI pulses (time-rect); use 'ffe'/'end-to-end' for band-limited pulses.")
             amp = torch.sqrt(sig.clamp(min=0))                                     # field amplitudes A_m = sqrt(z^2)
             thresholds = ((amp[:-1] + amp[1:]) / 2) ** 2                           # (amplitude midpoint)^2  (Fig. A.4)
             for ebn0_db in ebn0_db_list:

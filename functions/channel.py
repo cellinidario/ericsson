@@ -87,8 +87,13 @@ class OpticalChannel(nn.Module):
         super().__init__()
         self.num_segments = config.num_mzm_segments
         self.modulator = getattr(config, "modulator", "mzm")      # "mzm" | "linear" (ideal baseline)
+        self.modulation_format = getattr(config, "modulation_format", "upam-4")   # "upam-4" | "bpam-4"
         self.vpi = config.mzm_vpi_volt
-        self.bias_volt = config.mzm_vpi_volt                      # default operating point
+        self.bias_volt = config.mzm_vpi_volt                      # bias at Vpi: with drive in [0, Vpi] (upam-4)
+                                                                  # arg spans [-pi/2, 0] -> field cos(arg) in [0, 1];
+                                                                  # with drive in [-Vpi, Vpi] (bpam-4) arg spans
+                                                                  # [-pi, 0] -> field in [-1, +1], null at drive 0
+                                                                  # (the null-bias BPAM operation of Secondini2020)
         self.drive_min = config.drive_min_volt                   # for the linear-modulator power mapping
         self.drive_max = config.drive_max_volt
         extinction_linear = config.extinction_ratio_linear
@@ -203,8 +208,13 @@ class OpticalChannel(nn.Module):
         #              field = sqrt(power)) -- removes ONLY the MZM nonlinearity.
         # Everything after -- dispersion, ASE, optical filter, square-law photodiode -- is KEPT for both.
         if self.modulator == "linear":
-            power = (drive_combined - self.drive_min) / (self.drive_max - self.drive_min)
-            field_real = torch.sqrt(F.relu(power) + 1e-6) * self.field_loss   # eps tames the sqrt slope at P~0
+            if self.modulation_format == "bpam-4":
+                # ideal linear-FIELD modulator (Secondini2020, Fig. 2): bipolar field proportional to drive
+                field_real = (drive_combined / self.drive_max) * self.field_loss
+            else:
+                # ideal linear-INTENSITY modulator: optical power proportional to drive, chirp-free field
+                power = (drive_combined - self.drive_min) / (self.drive_max - self.drive_min)
+                field_real = torch.sqrt(F.relu(power) + 1e-6) * self.field_loss   # eps tames the sqrt slope at P~0
             field_imag = torch.zeros_like(field_real)
         else:
             arg = (np.pi / (2 * self.vpi)) * (drive_combined - self.bias_volt)
@@ -235,8 +245,11 @@ class OpticalChannel(nn.Module):
         x = drive.unsqueeze(0)
         drive_combined = self.segment_filter(x).sum(dim=1, keepdim=True)
         if self.modulator == "linear":
-            power = (drive_combined - self.drive_min) / (self.drive_max - self.drive_min)
-            field_real = torch.sqrt(F.relu(power) + 1e-6) * self.field_loss
+            if self.modulation_format == "bpam-4":
+                field_real = (drive_combined / self.drive_max) * self.field_loss   # linear-FIELD (bipolar)
+            else:
+                power = (drive_combined - self.drive_min) / (self.drive_max - self.drive_min)
+                field_real = torch.sqrt(F.relu(power) + 1e-6) * self.field_loss
             field_imag = torch.zeros_like(field_real)
         else:
             arg = (np.pi / (2 * self.vpi)) * (drive_combined - self.bias_volt)

@@ -144,6 +144,16 @@ def decision_phase_by_separation(photocurrent, samples_per_symbol, symbols, skip
     return phase, levels
 
 
+def quantize_ste(x, num_bits, lo, hi):
+    """Uniform mid-rise quantizer with a straight-through estimator: forward = quantized to
+    2**num_bits levels over [lo, hi] (clipped), backward = identity. Models the DAC/ADC in the
+    E2E chain while keeping it trainable (the JLT N_DAC/N_ADC study)."""
+    levels = 2 ** num_bits - 1
+    scale = (hi - lo) / levels
+    q = torch.round((x.clamp(lo, hi) - lo) / scale) * scale + lo
+    return x + (q - x).detach()   # STE: forward q, gradient of x
+
+
 def calibrate_ebn0_offset(reference_ber, ebn0_db_list, modulation_order):
     """dB shift that aligns the ideal-reference curve to the textbook curve.
     This is the Eb/N0-definition offset; applying it makes the axis honest."""

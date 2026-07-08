@@ -17,6 +17,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from pulse_shaping import root_raised_cosine, brickwall
+from utils import quantize_ste
 
 
 def bits_to_symbols(bits, bits_per_symbol):
@@ -37,20 +38,64 @@ class Transmitter(nn.Module):
         self.equalizer = getattr(config, "equalizer", "end-to-end")   # "end-to-end" -> DPD; else fixed levels
         self.pulse_kind = getattr(config, "tx_filter", "rrc")
         self.noise_regime = getattr(config, "noise_regime", "thermal")
+        self.modulation_format = getattr(config, "modulation_format", "upam-4")   # "upam-4" | "bpam-4"
+        self.modulator_kind = getattr(config, "modulator", "mzm")                 # needed for bpam fixed levels
+        self.precode_e2e = getattr(config, "bpam_precode_e2e", False)              # differential precoder in E2E too
+        self.dac_bits = getattr(config, "dac_bits", None)                          # DAC resolution (None = ideal)
+
+        # Sub-symbol waveform freedom: in end-to-end the DPD emits `samples_per_symbol_rx` drive values
+        # PER SYMBOL (T/2 spacing), instead of a single symbol-rate level. This is the degree of freedom
+        # the RX 2-sps sampling needs: two independent half-symbol slots let the autoencoder express
+        # time-multiplexed signalling (e.g. double-rate OOK, one bit/slot) rather than being confined to
+        # symbol-rate PAM. time-rect: each value is held over its T/2 slot. Band-limited pulses
+        # (freq-rect/rrc): the values are zero-stuffed at T/2 spacing and shaped by the same FIR -- for
+        # the 20 GHz brickwall at 20 GBd the T/2 slots are exactly at critical Nyquist (40 Gslot/s in
+        # 20 GHz), so double-rate signalling FITS the band. upam-4 (rx=1 sps) stays at 1 value/symbol.
+        waveform_freedom = getattr(config, "tx_waveform_freedom", True)   # True -> sps_rx values/symbol (double-OOK)
+        values = getattr(config, "tx_values_per_symbol", None)            # None -> sps_rx; e.g. 4 = sim rate,
+        self.tx_subsymbols = ((values or config.samples_per_symbol_rx)    # finer TX granularity for spectral
+                              if waveform_freedom and self.equalizer == "end-to-end" else 1)  # pre-compensation (CD)
 
         self.memory = config.dpd_memory_symbols
         hidden = config.dpd_hidden_width
         # DPD: fully-connected layers over a sliding window of `memory` symbols (used only when equalizer == "end-to-end")
         self.context_layer = nn.Linear(self.memory * self.num_bits, hidden)
-        self.segment_layer = nn.Linear(hidden, self.num_segments)
+        # optional extra hidden layers (depth adds pre-distortion capacity at the SAME memory of 5 symbols)
+        extra = max(0, getattr(config, "dpd_hidden_layers", 1) - 1)
+        self.extra_layers = nn.ModuleList(nn.Linear(hidden, hidden) for _ in range(extra))
+        self.segment_layer = nn.Linear(hidden, self.num_segments * self.tx_subsymbols)
+        # Exploratory init: the default small-weight init leaves tanh~0 -> every symbol starts at the drive
+        # midpoint (for bpam-4 that is the MZM null, field~0) -> the joint optimiser gets stuck in a
+        # quasi-unipolar local min (the RX cannot reward a sign it does not yet see). Scaling the DPD weights
+        # up makes the symbols start SPREAD across the full drive range [drive_min, drive_max] (bipolar for
+        # bpam-4), so the TX explores bipolar signalling from step 0. This imposes NO specific levels -- only a
+        # wider starting spread; gradient descent still learns the constellation.
+        gain = getattr(config, "tx_init_gain", 1.0)
+        if gain != 1.0:
+            with torch.no_grad():
+                self.context_layer.weight *= gain
+                self.segment_layer.weight *= gain
 
-        # fixed optimum levels (Gray) for the non-DPD modes ("ffe", "threshold"):
-        #   thermal (A.19): equispaced INTENSITY  (intensity ~ rank   -> linear drive ~ rank)
-        #   ase     (A.47): equispaced AMPLITUDE  (intensity ~ rank^2 -> linear drive ~ rank^2)
-        gray_rank = torch.tensor([0, 1, 3, 2], dtype=torch.float32)[: self.modulation_order]
-        norm_rank = gray_rank / (self.modulation_order - 1)
-        frac = norm_rank ** 2 if self.noise_regime == "ase" else norm_rank
-        fixed = self.drive_min + (self.drive_max - self.drive_min) * frac
+        # fixed optimum levels for the non-DPD modes ("ffe", "threshold"):
+        if self.modulation_format == "bpam-4":
+            # BPAM alphabet (Secondini2020, eq. 11): field levels {+-A, +-2A} normalized to {+-1/2, +-1}.
+            # Drive that produces field f: MZM (null bias)  V = Vpi*(1 - (2/pi)*arccos(f))  -> {+-Vpi/3, +-Vpi},
+            # the 4 voltages evenly spaced over the whole MZM characteristic (Secondini2020, eq. 21);
+            # linear-FIELD modulator  V = f*Vmax. Indexed by (amp_bit*2 + sign_state).
+            field = torch.tensor([+0.5, -0.5, +1.0, -1.0], dtype=torch.float32)   # (amp,state)=(0,0),(0,1),(1,0),(1,1)
+            if self.modulator_kind == "mzm":
+                vpi = config.mzm_vpi_volt
+                fixed = vpi * (1.0 - (2.0 / np.pi) * torch.arccos(field))
+            else:
+                fixed = field * self.drive_max
+        else:
+            # unipolar (Gray):
+            #   thermal (A.19): equispaced INTENSITY  (intensity ~ rank   -> linear drive ~ rank)
+            #   ase     (A.47): equispaced AMPLITUDE  (intensity ~ rank^2 -> linear drive ~ rank^2)
+            gray_rank = torch.tensor([0, 1, 3, 2], dtype=torch.float32)[: self.modulation_order]
+            norm_rank = gray_rank / (self.modulation_order - 1)
+            frac = norm_rank ** 2 if self.noise_regime == "ase" else norm_rank
+            fixed = self.drive_min + (self.drive_max - self.drive_min) * frac
         self.register_buffer("fixed_levels", fixed, persistent=False)   # derived from config -> not in state_dict
 
         # TX pulse: "time-rect" = one-symbol rectangle (sample-and-hold, no convolution); the band-limited
@@ -66,33 +111,65 @@ class Transmitter(nn.Module):
             tx_taps = tx_taps / tx_taps.max()
             self.register_buffer("rrc", torch.tensor(tx_taps, dtype=torch.float32).view(1, 1, -1))
 
-    def forward(self, bits):
-        """bits: (num_bits, num_symbols) -> drive waveform: (num_segments, num_symbols * sps)."""
+    def _precode_bpam(self, bits):
+        """Differential sign precoder for bpam-4 (OUTSIDE the network, like the Gray map: a discrete
+        structure a finite-window net cannot learn, because the absolute sign is unobservable in DD --
+        only sign CHANGES between adjacent pulses are). Row 0 = amplitude bit; row 1 = phase-difference
+        bit (dphi in {0, pi}). Returns (amp_bit, sign_state), sign_state_k = XOR-cumulated phase bits."""
+        sign_state = torch.cumsum(bits[1], dim=0) % 2
+        return torch.stack([bits[0], sign_state])
+
+    def symbol_drive_levels(self, bits):
+        """Per-symbol drive levels (num_segments, num_symbols), BEFORE pulse shaping. bits are the raw
+        information bits; for bpam-4 the differential sign precoder is applied internally."""
         num_symbols = bits.shape[1]
+        # Double-rate route: NO precoder in end-to-end -- the network sees RAW bits and, with sub-symbol
+        # waveform freedom, is free to place each bit on an independent T/2 slot (double-rate OOK / hybrid)
+        # that goes below the symbol-rate PAM theory by using the extra RX bandwidth. The differential
+        # precoder is kept only for the fixed-level modes (classical BPAM, where the sign is differential).
+        precode = self.modulation_format == "bpam-4" and (
+            self.equalizer != "end-to-end" or getattr(self, "precode_e2e", False))
+        coded = self._precode_bpam(bits) if precode else bits
         if self.equalizer == "end-to-end":
-            x = bits.unsqueeze(0).float()                      # (1, num_bits, num_symbols)
+            x = coded.unsqueeze(0).float()                     # (1, num_bits, num_symbols)
             pad = self.memory // 2                             # sliding window of `memory` symbols
             x_pad = F.pad(x, (pad, pad))
             windows = x_pad.unfold(2, self.memory, 1)          # (1, num_bits, num_symbols, memory)
             flat = windows.permute(0, 2, 1, 3).reshape(1, num_symbols, -1)
             hidden = F.leaky_relu(self.context_layer(flat))
-            bounded = torch.tanh(self.segment_layer(hidden))   # (1, num_symbols, num_segments) in [-1, 1]
-            bounded = bounded.permute(0, 2, 1)                 # (1, num_segments, num_symbols)
+            for layer in self.extra_layers:                    # optional DPD depth (same 5-symbol memory)
+                hidden = F.leaky_relu(layer(hidden))
+            bounded = torch.tanh(self.segment_layer(hidden))   # (1, num_symbols, num_segments*tx_subsymbols)
+            # (1, num_symbols, num_segments, tx_subsymbols) -> (num_segments, num_symbols * tx_subsymbols):
+            # the tx_subsymbols values of a symbol are placed consecutively in time (one per T/2 slot).
+            bounded = bounded.view(1, num_symbols, self.num_segments, self.tx_subsymbols)
+            bounded = bounded.permute(0, 2, 1, 3).reshape(1, self.num_segments, num_symbols * self.tx_subsymbols)
             drive_levels = self.drive_min + (self.drive_max - self.drive_min) * 0.5 * (bounded + 1.0)
-            drive_levels = drive_levels.squeeze(0)             # (num_segments, num_symbols)
-        else:                                                  # no DPD: fixed equispaced-intensity levels
-            symbols = bits_to_symbols(bits, self.num_bits)     # (num_symbols,)
-            drive_levels = self.fixed_levels[symbols].unsqueeze(0).expand(self.num_segments, -1)
+            return drive_levels.squeeze(0)                     # (num_segments, num_symbols * tx_subsymbols)
+        if self.modulation_format == "bpam-4":                 # no DPD: fixed BPAM levels via (amp, sign)
+            index = coded[0] * 2 + coded[1]                    # (num_symbols,) in 0..3
+            return self.fixed_levels[index].unsqueeze(0).expand(self.num_segments, -1)
+        symbols = bits_to_symbols(bits, self.num_bits)         # no DPD: fixed equispaced-intensity levels
+        return self.fixed_levels[symbols].unsqueeze(0).expand(self.num_segments, -1)
 
-        if self.pulse_kind == "time-rect":                     # one-symbol rectangle = sample-and-hold
-            drive_wave = drive_levels.repeat_interleave(self.samples_per_symbol, dim=1)
+    def forward(self, bits):
+        """bits: (num_bits, num_symbols) -> drive waveform: (num_segments, num_symbols * sps)."""
+        num_symbols = bits.shape[1]
+        drive_levels = self.symbol_drive_levels(bits)
+
+        if self.pulse_kind == "time-rect":                     # sample-and-hold; tx_subsymbols slots per symbol
+            hold = self.samples_per_symbol // self.tx_subsymbols   # sim-samples per T/2 slot (== sps if 1 value/symbol)
+            drive_wave = drive_levels.repeat_interleave(hold, dim=1)
         else:                                                  # band-limited pulse: zero-stuff + FIR
             upsampled = torch.zeros(self.num_segments, num_symbols * self.samples_per_symbol,
                                     device=drive_levels.device)
-            upsampled[:, ::self.samples_per_symbol] = drive_levels
+            stride = self.samples_per_symbol // self.tx_subsymbols   # T/2 spacing when tx_subsymbols = 2
+            upsampled[:, ::stride] = drive_levels
             rrc_bank = self.rrc.repeat(self.num_segments, 1, 1)
             drive_wave = F.conv1d(upsampled.unsqueeze(0), rrc_bank,
                                   padding=self.rrc.shape[-1] // 2, groups=self.num_segments).squeeze(0)
+        if self.dac_bits is not None:                          # DAC: quantize the digital waveform (STE)
+            drive_wave = quantize_ste(drive_wave, self.dac_bits, self.drive_min, self.drive_max)
         return drive_wave
 
 

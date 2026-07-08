@@ -20,6 +20,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from pulse_shaping import root_raised_cosine, brickwall
+from channel import supergaussian_fir
+from utils import quantize_ste
 
 
 class Receiver(nn.Module):
@@ -32,6 +34,7 @@ class Receiver(nn.Module):
         self.decimation = self.samples_per_symbol_sim // self.samples_per_symbol_rx
 
         self.pulse_kind = getattr(config, "rx_filter", "rrc")
+        self.modulation_format = getattr(config, "modulation_format", "upam-4")   # "upam-4" | "bpam-4"
         # RX matched filter (keep = tx_filter to stay matched). "time-rect" -> integrate-and-dump (applied as a
         # reshape-sum in matched_and_decimate); the boxcar buffer below is only used by the eye-diagram cell.
         if self.pulse_kind == "time-rect":
@@ -44,18 +47,36 @@ class Receiver(nn.Module):
             matched_taps = root_raised_cosine(config.rrc_rolloff, config.rrc_span_symbols, self.samples_per_symbol_sim)
         self.register_buffer("matched", torch.tensor(matched_taps, dtype=torch.float32).view(1, 1, -1))
 
+        # optional digital Gaussian LPF on the photocurrent before decimation (JLT setup: 10 GHz)
+        gauss_bw = getattr(config, "rx_gaussian_bw", None)
+        if gauss_bw:
+            taps = supergaussian_fir(gauss_bw, 1, config.sim_sample_rate, 65)
+            self.register_buffer("rx_gauss", torch.tensor(taps[::-1].copy(), dtype=torch.float32).view(1, 1, -1))
+        else:
+            self.rx_gauss = None
+        self.adc_bits = getattr(config, "adc_bits", None)      # ADC resolution (None = ideal)
+
         hidden = config.ffe_hidden_width
         # window of `memory` symbols, each contributing `samples_per_symbol_rx` samples
         self.window_size = config.ffe_memory_symbols * self.samples_per_symbol_rx
         self.context_layer = nn.Linear(self.window_size, hidden)
+        # optional extra hidden layers (depth = nonlinear inversion capacity, e.g. the short CD x square-law
+        # distortion in C-band; 1 = the original two-FC receiver, no behaviour change)
+        extra = max(0, getattr(config, "ffe_hidden_layers", 1) - 1)
+        self.extra_layers = nn.ModuleList(nn.Linear(hidden, hidden) for _ in range(extra))
         self.symbol_head = nn.Linear(hidden, self.modulation_order)   # M-way symbol classifier
         self.ffe_nonlinear = getattr(config, "ffe_nonlinear", True)   # False -> purely linear FFE (no activation)
 
     def matched_and_decimate(self, photocurrent):
         """Matched filter + downsample to the symbol rate -> (1, 1, num_symbols * sps_rx).
-        "time-rect": integrate-and-dump (sum the sps_sim samples of each symbol -> one statistic/symbol);
-        band-limited pulses: FIR matched filter + decimation at the symbol centre (offset 0)."""
-        if self.pulse_kind == "time-rect":
+        "time-rect" at 1 rx sps: integrate-and-dump (one statistic per symbol).
+        "time-rect" at 2 rx sps (bpam-4): the boxcar matched filter is applied as a CONVOLUTION and
+        sampled at 2 sps -- rect (X) rect gives the triangular h(t) with h(+-T/2) = 1/2, so the T/2
+        samples contain the adjacent-pulse interference that carries the sign (Secondini2020, footnote 2
+        choice i: rectangular pulse + matched optical filter). The plain integrate-and-dump would return
+        one sample/symbol and destroy the sign information (non-overlapping rects have no cross terms).
+        Band-limited pulses: FIR matched filter + decimation at the symbol centre (offset 0)."""
+        if self.pulse_kind == "time-rect" and self.samples_per_symbol_rx == 1:
             sps = self.samples_per_symbol_sim
             n = photocurrent.shape[-1] // sps
             return photocurrent[:n * sps].view(n, sps).mean(dim=1).view(1, 1, -1)   # integrate-and-dump, unit gain
@@ -64,7 +85,20 @@ class Receiver(nn.Module):
 
     def features(self, photocurrent):
         """Shared FFE features per symbol: (1, num_symbols, hidden)."""
-        x = self.matched_and_decimate(photocurrent)
+        if self.rx_gauss is not None:                          # digital Gaussian LPF (JLT: 10 GHz)
+            photocurrent = F.conv1d(photocurrent.view(1, 1, -1), self.rx_gauss,
+                                    padding=self.rx_gauss.shape[-1] // 2).view(-1)
+        if self.modulation_format == "bpam-4":
+            # bpam-4: feed the RAW photocurrent samples at 2 sps (pure decimation, no matched filter):
+            # the optical filtering already happened on the FIELD inside the channel (where the sign
+            # information is created by pulse interference), and the FFE window learns any further
+            # filtering itself — the same front-end as the classical 2-sps BPAM equalizers.
+            x = photocurrent.view(1, 1, -1)[:, :, ::self.decimation]
+        else:
+            x = self.matched_and_decimate(photocurrent)
+        if self.adc_bits is not None:                          # ADC: quantize the decimated samples (STE);
+            lo, hi = float(x.min()), float(x.max())            # full-scale = observed range (ideal AGC)
+            x = quantize_ste(x, self.adc_bits, lo, hi)
         # sliding window of `window_size` samples, stride = samples_per_symbol_rx -> one window per symbol
         pad = (self.window_size - self.samples_per_symbol_rx) // 2
         x_pad = F.pad(x, (pad, pad))
@@ -74,6 +108,10 @@ class Receiver(nn.Module):
         hidden = self.context_layer(flat)                                         # (1, num_symbols, hidden)
         if self.ffe_nonlinear:
             hidden = F.leaky_relu(hidden)                                         # nonlinear FFE (linear if False)
+        for layer in self.extra_layers:                                           # optional depth (see __init__)
+            hidden = layer(hidden)
+            if self.ffe_nonlinear:
+                hidden = F.leaky_relu(hidden)
         return hidden
 
     def forward(self, photocurrent):

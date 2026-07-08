@@ -44,7 +44,13 @@ class Config:
         self.symbol_rate = 20e9                 # baud (OFC paper: 20 GBaud)
         self.bits_per_symbol = 2                # PAM-4 -> 2 bit/symbol
         self.modulation_order = 4               # M = 2**bits_per_symbol
-        self.pam_format = "unipolar"            # "unipolar" | "bipolar" (BPAM is a future item)
+        self.modulation_format = "upam-4"       # "upam-4": unipolar PAM-4 (conventional IM/DD)
+                                                # "bpam-4": bipolar PAM-4 with direct detection (Secondini2020): 
+                                                # field levels {+-A, +-2A}, 1 bit on the
+                                                # 2 amplitudes + 1 bit DIFFERENTIALLY encoded on the sign
+                                                # (delta-phi in {0, pi}); the receiver needs 2 samples/symbol
+                                                # (odd samples sense the sign through pulse interference).
+                                                # Set via set_modulation_format() -> derives drive range + rx sps.
 
         # ===== oversampling =====
         self.samples_per_symbol_sim = 4         # analog channel rate; 4 is enough if MZM BW <= 30 GHz
@@ -52,6 +58,40 @@ class Config:
         self.samples_per_symbol_rx = 1          # ADC / FFE rate. Unipolar PAM is a sufficient statistic at
                                                 # symbol rate (matched filter -> no ISI at 1 sps); 2 sps is
                                                 # only needed for BPAM. (Was 2 in the OFC config.)
+        self.bpam_curriculum = False            # bpam-4 E2E: staged curriculum (NO imposed levels). (1) joint
+                                                # train at low SNR -> the TX self-organizes bipolar; (2) freeze
+                                                # TX, train RX to convergence -> breaks the co-adaptation
+                                                # deadlock; (3) free joint fine-tune. Needs bpam_precode_e2e.
+        self.curr_lowsnr_ebn0 = 10.0            # stage-1 fixed training Eb/N0 [dB]
+        self.curr_lowsnr_steps = 20000          # stage-1 joint-at-low-SNR steps
+        self.curr_rxonly_steps = 20000          # stage-2 frozen-TX RX-only steps
+        self.bpam_warm_start = False            # bpam-4 E2E: warm-start the TX on the classical BPAM
+                                                # constellation (distill) + prime the RX, then free joint
+                                                # fine-tune. Breaks the TX<->RX co-adaptation deadlock so the
+                                                # E2E reaches the below-theory BPAM basin. Needs
+                                                # bpam_precode_e2e=True. Basin selection, not level imposition.
+        self.warm_distill_steps = 8000          # phase-0 TX distillation steps
+        self.warm_rxonly_steps = 15000          # phase-1 RX-only priming steps
+        self.tx_init_gain = 1.0                 # DPD weight-init multiplier. >1 spreads the initial per-symbol
+                                                # drives across the full (bipolar) range instead of starting at
+                                                # the null -> lets the E2E explore bipolar signalling from step
+                                                # 0 (escapes the quasi-unipolar local min). Imposes no levels.
+        self.bpam_loss = "ce+bce"               # bpam-4 E2E training loss: "ce+bce" (symbol-CE keeps 4
+                                                # distinct intensities -> double-rate/hybrid route) or "bce"
+                                                # (per-bit only; ALLOWS sign-degenerate intensities |+-A|^2
+                                                # -> true BPAM, sign recovered by T/2 interference).
+        self.bpam_precode_e2e = False           # bpam-4 E2E: apply the differential sign precoder in the
+                                                # end-to-end path too (True). Needed for the classical-BPAM
+                                                # route in a band-limited channel (freq-rect), where the sign
+                                                # is only DIFFERENTIALLY observable and double-rate OOK does
+                                                # not fit the 20 GHz TX filter. False (default) = raw bits =
+                                                # the double-rate route (works when the band allows 2 sps).
+        self.tx_waveform_freedom = True         # bpam-4 E2E + time-rect: DPD emits sps_rx values per symbol
+                                                # (sub-symbol waveform freedom) so each bit can ride an
+                                                # independent T/2 slot -> double-rate OOK/hybrid that goes
+                                                # BELOW the symbol-rate PAM theory using the extra RX
+                                                # bandwidth. False -> classical 1 level/symbol BPAM (needs
+                                                # the differential precoder; sits ~on the theory).
 
         # ===== pulse shaping (fixed at TX, matched at RX -> Fork A, no time-mux) =====
         self.rrc_rolloff = 0.85                 # RRC roll-off (tx_filter / rx_filter == "rrc")
@@ -62,7 +102,7 @@ class Config:
         # ===== MZM (modulator == "mzm"): E = 1/2 (e^{j*phi} + gamma*e^{-j*phi}) =====
         self.num_mzm_segments = 1               # single segment (Marco's JLT model); >1 -> segmented MZM (phases sum)
         self.mzm_vpi_volt = 5.0                 # half-wave voltage V_pi
-        self.mzm_extinction_ratio_db = 33.0     # finite extinction ratio -> gamma = (sqrt(ER)-1)/(sqrt(ER)+1)
+        self.mzm_extinction_ratio_db = 25.0     # finite extinction ratio -> gamma = (sqrt(ER)-1)/(sqrt(ER)+1)
         self.mzm_bandwidth = 30e9               # per-segment EO bandwidth (30 GHz >> Nyquist -> low ISI)
         self.segment_bandwidth_scales = (1.0,)  # per-segment BW = scale * mzm_bandwidth, one entry per segment;
                                                 # a longer tuple (e.g. 0.85,0.90,0.95,1.00) models driver mismatch
@@ -86,9 +126,22 @@ class Config:
         # ===== photodiode =====
         self.photodiode_bandwidth = 25e9        # post-detection low-pass bandwidth
 
+        # ===== JLT reference chain: RX digital filter + converter quantization =====
+        self.rx_gaussian_bw = None              # digital Gaussian LPF on the photocurrent before decimation
+                                                # (JLT agreed setup: 10e9). None -> off.
+        self.dac_bits = None                    # DAC resolution N_DAC (JLT: 6); quantizes the TX drive
+                                                # waveform over [drive_min, drive_max]. None -> ideal DAC.
+                                                # Trained through with a straight-through estimator (STE).
+        self.adc_bits = None                    # ADC resolution N_ADC; quantizes the decimated RX samples.
+                                                # None -> ideal ADC. STE in training.
+
         # ===== DPD (transmitter DSP), Fork A: symbol-rate predistortion with memory =====
         self.dpd_memory_symbols = 5             # context window (LUT-feasible: 2^(2*5) = 1024 rows)
         self.dpd_hidden_width = 8               # leaky-ReLU hidden width
+        self.dpd_hidden_layers = 1              # hidden DEPTH of the DPD (memory stays dpd_memory_symbols;
+                                                # depth adds pre-distortion capacity, e.g. C-band CD pre-comp)
+        self.tx_values_per_symbol = None        # E2E waveform granularity: None -> samples_per_symbol_rx;
+                                                # 4 -> sim-rate values (finer spectral control for CD pre-comp)
         self.drive_min_volt = 0.0               # DPD output range, lower bound
         self.drive_max_volt = 5.0               # upper bound = Vpi -> monotonic half of the MZM transfer
                                                 # (init at quadrature: max slope, good gradient). This bound
@@ -100,6 +153,8 @@ class Config:
                                                 # memory is ~1 symbol, so 11 taps are already generous
         self.ffe_hidden_width = 8               # nonlinear capacity. Small effect in O-band/ASE, but a STRONG
                                                 # lever in C-band (the nonlinear CD distortion: ~3.7x at 20 dB)
+        self.ffe_hidden_layers = 1              # hidden DEPTH of the FFE (1 = classic two-FC receiver). Depth
+                                                # adds nonlinear inversion capacity (C-band CD x square-law).
         self.ffe_nonlinear = True               # True: leaky-ReLU FFE (nonlinear). False: a purely LINEAR
                                                 # FFE (no activation) -> the classical linear equalizer baseline
 
@@ -125,7 +180,33 @@ class Config:
         self._apply_wavelength_band()
         self._compute_derived()
 
+    def set_modulation_format(self, fmt):
+        """Select 'upam-4' (unipolar, conventional IM/DD) or 'bpam-4' (bipolar with DD).
+        Derives the format-dependent settings:
+          upam-4: drive in [0, Vpi]   -> the monotonic UNIPOLAR half of the MZM field transfer; 1 rx sps suffices.
+          bpam-4: drive in [-Vpi, Vpi] -> with the null bias the field cos(arg) sweeps [-1, +1] monotonically
+                  (arg in [-pi, 0], zero field at drive 0); the receiver MUST sample at 2 sps (the odd,
+                  half-symbol samples carry the sign information via inter-pulse interference)."""
+        if fmt not in ("upam-4", "bpam-4"):
+            raise ValueError(f"modulation_format must be 'upam-4' or 'bpam-4', got {fmt!r}")
+        self.modulation_format = fmt
+        if fmt == "bpam-4":
+            self.drive_min_volt = -self.mzm_vpi_volt
+            self.drive_max_volt = +self.mzm_vpi_volt
+            self.samples_per_symbol_rx = 2
+        else:
+            self.drive_min_volt = 0.0
+            self.drive_max_volt = self.mzm_vpi_volt
+            self.samples_per_symbol_rx = 1
+        self._compute_derived()
+
     def _compute_derived(self):
+        # normalize + validate the equalizer knob ("autoencoder" is an alias for "end-to-end");
+        # an unknown string must FAIL LOUDLY, not silently degrade to fixed-levels/RX-only training
+        self.equalizer = {"autoencoder": "end-to-end"}.get(self.equalizer, self.equalizer)
+        if self.equalizer not in ("threshold", "ffe", "end-to-end"):
+            raise ValueError(f"equalizer must be 'threshold', 'ffe', 'end-to-end' (alias 'autoencoder'), "
+                             f"got {self.equalizer!r}")
         self.bit_rate = self.symbol_rate * self.bits_per_symbol
         self.sim_sample_rate = self.symbol_rate * self.samples_per_symbol_sim
         self.rx_sample_rate = self.symbol_rate * self.samples_per_symbol_rx
@@ -136,7 +217,9 @@ class Config:
     def summary(self):
         lines = []
         lines.append(f"symbol rate          : {self.symbol_rate/1e9:.0f} GBaud")
-        lines.append(f"bit rate             : {self.bit_rate/1e9:.0f} Gb/s  (PAM-{self.modulation_order})")
+        fmt_names = {"upam-4": "unipolar PAM-4", "bpam-4": "bipolar PAM-4/DD (differential sign, 2 rx sps)"}
+        lines.append(f"bit rate             : {self.bit_rate/1e9:.0f} Gb/s  "
+                     f"({fmt_names.get(self.modulation_format, self.modulation_format)})")
         lines.append(f"sim sample rate      : {self.sim_sample_rate/1e9:.0f} GHz  ({self.samples_per_symbol_sim} sps, Nyquist {self.sim_nyquist/1e9:.0f} GHz)")
         lines.append(f"rx sample rate       : {self.rx_sample_rate/1e9:.0f} GHz  ({self.samples_per_symbol_rx} sps)")
         lines.append(f"photodiode bandwidth : {self.photodiode_bandwidth/1e9:.0f} GHz  (representable: {self.photodiode_bandwidth < self.sim_nyquist})")
