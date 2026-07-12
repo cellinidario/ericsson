@@ -43,6 +43,13 @@ class Transmitter(nn.Module):
         self.precode_e2e = getattr(config, "bpam_precode_e2e", False)              # differential precoder in E2E too
         self.dac_bits = getattr(config, "dac_bits", None)                          # DAC resolution (None = ideal)
         self.output_activation = getattr(config, "dpd_output_activation", "tanh")  # "tanh" | "hardtanh"
+        tx_gauss = getattr(config, "tx_gaussian_bw", None)                         # Gaussian cascade after pulse filter
+        if tx_gauss:
+            from channel import supergaussian_fir
+            g = supergaussian_fir(tx_gauss, 1, config.sim_sample_rate, 65)
+            self.register_buffer("tx_gauss", torch.tensor(g[::-1].copy(), dtype=torch.float32).view(1, 1, -1))
+        else:
+            self.tx_gauss = None
 
         # Sub-symbol waveform freedom: in end-to-end the DPD emits `samples_per_symbol_rx` drive values
         # PER SYMBOL (T/2 spacing), instead of a single symbol-rate level. This is the degree of freedom
@@ -171,6 +178,9 @@ class Transmitter(nn.Module):
             rrc_bank = self.rrc.repeat(self.num_segments, 1, 1)
             drive_wave = F.conv1d(upsampled.unsqueeze(0), rrc_bank,
                                   padding=self.rrc.shape[-1] // 2, groups=self.num_segments).squeeze(0)
+        if self.tx_gauss is not None:                          # Gaussian cascade after the TX pulse filter
+            drive_wave = F.conv1d(drive_wave.unsqueeze(1), self.tx_gauss,
+                                  padding=self.tx_gauss.shape[-1] // 2).squeeze(1)
         if self.dac_bits is not None:                          # DAC: quantize the digital waveform (STE)
             drive_wave = quantize_ste(drive_wave, self.dac_bits, self.drive_min, self.drive_max)
         return drive_wave

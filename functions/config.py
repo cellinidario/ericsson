@@ -141,6 +141,9 @@ class Config:
         self.photodiode_bandwidth = 25e9        # post-detection low-pass bandwidth
 
         # ===== JLT reference chain: RX digital filter + converter quantization =====
+        self.tx_gaussian_bw = None              # digital Gaussian LPF (3-dB BW) CASCADED after the TX pulse
+                                                # filter, on the drive (Marco's sequence: first TX only,
+                                                # then both). None -> off.
         self.rx_gaussian_bw = None              # digital Gaussian LPF on the photocurrent before decimation
                                                 # (JLT agreed setup: 10e9). None -> off.
         self.dac_bits = None                    # DAC resolution N_DAC (JLT: 6); quantizes the TX drive
