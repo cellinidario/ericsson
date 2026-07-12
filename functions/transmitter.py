@@ -42,6 +42,7 @@ class Transmitter(nn.Module):
         self.modulator_kind = getattr(config, "modulator", "mzm")                 # needed for bpam fixed levels
         self.precode_e2e = getattr(config, "bpam_precode_e2e", False)              # differential precoder in E2E too
         self.dac_bits = getattr(config, "dac_bits", None)                          # DAC resolution (None = ideal)
+        self.output_activation = getattr(config, "dpd_output_activation", "tanh")  # "tanh" | "hardtanh"
 
         # Sub-symbol waveform freedom: in end-to-end the DPD emits `samples_per_symbol_rx` drive values
         # PER SYMBOL (T/2 spacing), instead of a single symbol-rate level. This is the degree of freedom
@@ -139,7 +140,9 @@ class Transmitter(nn.Module):
             hidden = F.leaky_relu(self.context_layer(flat))
             for layer in self.extra_layers:                    # optional DPD depth (same 5-symbol memory)
                 hidden = F.leaky_relu(layer(hidden))
-            bounded = torch.tanh(self.segment_layer(hidden))   # (1, num_symbols, num_segments*tx_subsymbols)
+            raw = self.segment_layer(hidden)                   # (1, num_symbols, num_segments*tx_subsymbols)
+            # output bounding: "tanh" (smooth, saturating) or "hardtanh" (linear, hard clip at the rails)
+            bounded = torch.tanh(raw) if self.output_activation == "tanh" else F.hardtanh(raw)
             # (1, num_symbols, num_segments, tx_subsymbols) -> (num_segments, num_symbols * tx_subsymbols):
             # the tx_subsymbols values of a symbol are placed consecutively in time (one per T/2 slot).
             bounded = bounded.view(1, num_symbols, self.num_segments, self.tx_subsymbols)

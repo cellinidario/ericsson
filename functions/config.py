@@ -103,6 +103,20 @@ class Config:
         self.num_mzm_segments = 1               # single segment (Marco's JLT model); >1 -> segmented MZM (phases sum)
         self.mzm_vpi_volt = 5.0                 # half-wave voltage V_pi
         self.mzm_extinction_ratio_db = 25.0     # finite extinction ratio -> gamma = (sqrt(ER)-1)/(sqrt(ER)+1)
+        self.mzm_bias_volt = None               # MZM bias voltage. None -> Vpi (bpam null bias / upam default).
+                                                # Detuning toward quadrature (e.g. 0.8*Vpi) adds a carrier and,
+                                                # with finite ER, a quadrature field component -> an ACTIONABLE
+                                                # (bias is a real knob) partial phase control against CD fading.
+        self.drive_swing_fraction = 1.0         # DPD output swing as a fraction of the nominal range: 1.0 ->
+                                                # full (-Vpi,+Vpi) for bpam; 0.6 -> (-3/5 Vpi, +3/5 Vpi)
+                                                # (realistic driver swing limit).
+        self.dpd_output_activation = "tanh"     # last DPD layer bounding: "tanh" (smooth, saturating) or
+                                                # "hardtanh" (linear with hard clip at the rails).
+        self.mzm_chirp_alpha = 0.0              # dual-drive chirp: asymmetric push-pull split multiplies the
+                                                # field by exp(j*alpha*arg) (pure phase: TX intensity and b2b
+                                                # unchanged; under CD it SHIFTS the DD power fading -> the
+                                                # C-band lever). 0 = chirp-free (today's model); |alpha|<=1
+                                                # is the typical dual-drive range.
         self.mzm_bandwidth = 30e9               # per-segment EO bandwidth (30 GHz >> Nyquist -> low ISI)
         self.segment_bandwidth_scales = (1.0,)  # per-segment BW = scale * mzm_bandwidth, one entry per segment;
                                                 # a longer tuple (e.g. 0.85,0.90,0.95,1.00) models driver mismatch
@@ -190,13 +204,14 @@ class Config:
         if fmt not in ("upam-4", "bpam-4"):
             raise ValueError(f"modulation_format must be 'upam-4' or 'bpam-4', got {fmt!r}")
         self.modulation_format = fmt
+        swing = getattr(self, "drive_swing_fraction", 1.0)      # 1.0 = full swing; 0.6 = +-3/5 Vpi
         if fmt == "bpam-4":
-            self.drive_min_volt = -self.mzm_vpi_volt
-            self.drive_max_volt = +self.mzm_vpi_volt
+            self.drive_min_volt = -swing * self.mzm_vpi_volt
+            self.drive_max_volt = +swing * self.mzm_vpi_volt
             self.samples_per_symbol_rx = 2
         else:
             self.drive_min_volt = 0.0
-            self.drive_max_volt = self.mzm_vpi_volt
+            self.drive_max_volt = swing * self.mzm_vpi_volt
             self.samples_per_symbol_rx = 1
         self._compute_derived()
 

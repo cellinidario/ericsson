@@ -89,13 +89,16 @@ class OpticalChannel(nn.Module):
         self.modulator = getattr(config, "modulator", "mzm")      # "mzm" | "linear" (ideal baseline)
         self.modulation_format = getattr(config, "modulation_format", "upam-4")   # "upam-4" | "bpam-4"
         self.vpi = config.mzm_vpi_volt
-        self.bias_volt = config.mzm_vpi_volt                      # bias at Vpi: with drive in [0, Vpi] (upam-4)
+        bias = getattr(config, "mzm_bias_volt", None)
+        self.bias_volt = config.mzm_vpi_volt if bias is None else float(bias)
+                                                                  # default bias at Vpi: with drive in [0, Vpi] (upam-4)
                                                                   # arg spans [-pi/2, 0] -> field cos(arg) in [0, 1];
                                                                   # with drive in [-Vpi, Vpi] (bpam-4) arg spans
                                                                   # [-pi, 0] -> field in [-1, +1], null at drive 0
                                                                   # (the null-bias BPAM operation of Secondini2020)
         self.drive_min = config.drive_min_volt                   # for the linear-modulator power mapping
         self.drive_max = config.drive_max_volt
+        self.chirp_alpha = float(getattr(config, "mzm_chirp_alpha", 0.0))   # dual-drive chirp (0 = none)
         extinction_linear = config.extinction_ratio_linear
         self.gamma = (np.sqrt(extinction_linear) - 1) / (np.sqrt(extinction_linear) + 1)
         self.field_loss = float(np.sqrt(config.fiber_loss_linear))
@@ -219,6 +222,8 @@ class OpticalChannel(nn.Module):
         else:
             arg = (np.pi / (2 * self.vpi)) * (drive_combined - self.bias_volt)
             field = 0.5 * (torch.exp(1j * arg) + self.gamma * torch.exp(-1j * arg))
+            if self.chirp_alpha != 0.0:                          # dual-drive chirp: pure TX phase
+                field = field * torch.exp(1j * self.chirp_alpha * arg)
             field_real = field.real * self.field_loss
             field_imag = field.imag * self.field_loss
         # chromatic dispersion in the optical band, on the complex envelope
@@ -254,6 +259,8 @@ class OpticalChannel(nn.Module):
         else:
             arg = (np.pi / (2 * self.vpi)) * (drive_combined - self.bias_volt)
             field = 0.5 * (torch.exp(1j * arg) + self.gamma * torch.exp(-1j * arg))
+            if self.chirp_alpha != 0.0:                          # dual-drive chirp: pure TX phase
+                field = field * torch.exp(1j * self.chirp_alpha * arg)
             field_real = field.real * self.field_loss
             field_imag = field.imag * self.field_loss
         field_real, field_imag = self._apply_dispersion(field_real, field_imag)
