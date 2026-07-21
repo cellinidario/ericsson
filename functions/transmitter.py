@@ -65,13 +65,17 @@ class Transmitter(nn.Module):
                               if waveform_freedom and self.equalizer == "end-to-end" else 1)  # pre-compensation (CD)
 
         self.memory = config.dpd_memory_symbols
-        hidden = config.dpd_hidden_width
+        # hidden widths: a per-layer list (dpd_hidden_widths, e.g. [32, 64, 16] = the "complex" TX)
+        # or the legacy single width replicated dpd_hidden_layers times.
+        widths = getattr(config, "dpd_hidden_widths", None)
+        if not widths:
+            widths = [config.dpd_hidden_width] * max(1, getattr(config, "dpd_hidden_layers", 1))
         # DPD: fully-connected layers over a sliding window of `memory` symbols (used only when equalizer == "end-to-end")
-        self.context_layer = nn.Linear(self.memory * self.num_bits, hidden)
+        self.context_layer = nn.Linear(self.memory * self.num_bits, widths[0])
         # optional extra hidden layers (depth adds pre-distortion capacity at the SAME memory of 5 symbols)
-        extra = max(0, getattr(config, "dpd_hidden_layers", 1) - 1)
-        self.extra_layers = nn.ModuleList(nn.Linear(hidden, hidden) for _ in range(extra))
-        self.segment_layer = nn.Linear(hidden, self.num_segments * self.tx_subsymbols)
+        self.extra_layers = nn.ModuleList(nn.Linear(widths[i], widths[i + 1])
+                                          for i in range(len(widths) - 1))
+        self.segment_layer = nn.Linear(widths[-1], self.num_segments * self.tx_subsymbols)
         # Exploratory init: the default small-weight init leaves tanh~0 -> every symbol starts at the drive
         # midpoint (for bpam-4 that is the MZM null, field~0) -> the joint optimiser gets stuck in a
         # quasi-unipolar local min (the RX cannot reward a sign it does not yet see). Scaling the DPD weights

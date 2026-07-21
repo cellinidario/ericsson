@@ -22,6 +22,7 @@ import torch.nn.functional as F
 
 from config import Config
 from channel import OpticalChannel
+from surrogate import build_channel
 from transmitter import Transmitter, bits_to_symbols
 from receiver import Receiver, bit_posteriors
 from utils import add_awgn, measure_ber, theoretical_ber_unipolar, theoretical_ber_unipolar_ase
@@ -115,7 +116,7 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
     BCE alone could abandon a bit -> a degenerate collapse). The per-bit LLRs are recovered at eval by
     marginalizing the softmax over the amplitude-Gray map (amplitude_gray_bits)."""
     transmitter = Transmitter(config).to(device)
-    channel = OpticalChannel(config).to(device)
+    channel = build_channel(config).to(device)     # "physics" (default) or a frozen data-trained surrogate
     receiver = Receiver(config).to(device)
     window = config.minibatch_symbols + 2 * config.edge_guard_symbols
     guard = config.edge_guard_symbols
@@ -192,7 +193,10 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
         bits = random_bits(config.bits_per_symbol, window, device)
         symbols = bits_to_symbols(bits, config.bits_per_symbol)
         noisy = link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver)  # ASE -> envelope; thermal -> photocurrent
-        logits = receiver(noisy)                                  # (num_symbols, M) symbol logits
+        if bpam and receiver.bit_head is not None:
+            bit_logits, logits = receiver.bit_and_symbol_logits(noisy)   # sigmoid bit head + aux symbol head
+        else:
+            bit_logits, logits = None, receiver(noisy)            # (num_symbols, M) symbol logits
         n = logits.shape[0]
         if bpam:
             # bpam-4 double-rate route: COMBINED loss = symbol cross-entropy + per-bit BCE. With sub-symbol
@@ -200,7 +204,12 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
             # 4 symbols are absolutely DD-observable, and this goes below the symbol-rate PAM theory. BCE
             # alone abandons one bit (BER 0.25 collapse); the CE term keeps the 4 symbols distinct for the
             # whole training, BCE keeps the per-bit posteriors calibrated (soft-FEC LLRs).
-            posteriors = bit_posteriors(logits[guard:n - guard], config.bits_per_symbol)   # (k, n) P(b=1)
+            # With rx_bit_head the BCE acts on the SIGMOID head output z_k (Marco's formalism) and the
+            # symbol softmax is a training-only auxiliary head.
+            if bit_logits is not None:
+                posteriors = torch.sigmoid(bit_logits[guard:n - guard]).T                  # (k, n) P(b=1)
+            else:
+                posteriors = bit_posteriors(logits[guard:n - guard], config.bits_per_symbol)  # (k, n) P(b=1)
             bce = F.binary_cross_entropy(posteriors.clamp(1e-6, 1 - 1e-6), bits[:, guard:n - guard].float())
             if getattr(config, "bpam_loss", "ce+bce") == "bce":
                 loss = bce                                       # true BPAM: allow sign-degenerate intensities
@@ -215,7 +224,9 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
         loss.backward()
         optimizer.step()
         if step % max(1, num_steps // 8) == 0 or step == num_steps - 1:
-            ber, _ = measure_ber(bit_posteriors(logits, config.bits_per_symbol), bits, guard)
+            log_post = (torch.sigmoid(bit_logits).T if bit_logits is not None
+                        else bit_posteriors(logits, config.bits_per_symbol))
+            ber, _ = measure_ber(log_post, bits, guard)
             with torch.no_grad():
                 spread = level_gap_spread(channel(transmitter(bits)), symbols, sps, guard, config.modulation_order)
             print(f"  step {step:4d}  ebn0 {ebn0_db:4.1f}  ce {loss.item():.8f}  gap-spread {spread:.3f}  BER {ber:.10f}")
@@ -236,10 +247,17 @@ def evaluate(transmitter, channel, receiver, config, ebn0_db_list, num_symbols, 
     with torch.no_grad():
         bits = random_bits(k, num_symbols, device)
         ref_bits = sym_bits[bits_to_symbols(bits, k)].T                    # (k, N) amplitude-Gray reference
+        use_bit_head = (getattr(config, "modulation_format", "upam-4") == "bpam-4"
+                        and receiver.bit_head is not None)
         for ebn0_db in ebn0_db_list:
-            logits = forward_link(transmitter, channel, receiver, bits, ebn0_db, config)
-            post = bit_posteriors(logits, k, symbol_bits=sym_bits)         # P(b_i = 1) under amplitude-Gray
-            ber, shift = measure_ber(post, ref_bits, config.edge_guard_symbols)
+            if use_bit_head:                                               # z_k from the sigmoid head directly
+                noisy = link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver)
+                post = receiver.bit_posteriors_direct(noisy)
+                ber, shift = measure_ber(post, bits, config.edge_guard_symbols)
+            else:
+                logits = forward_link(transmitter, channel, receiver, bits, ebn0_db, config)
+                post = bit_posteriors(logits, k, symbol_bits=sym_bits)     # P(b_i = 1) under amplitude-Gray
+                ber, shift = measure_ber(post, ref_bits, config.edge_guard_symbols)
             results.append(ber)
             print(f"Eb/N0 {ebn0_db:5.1f} dB   BER {ber:.3e}   (shift {shift})")
     return np.array(results)

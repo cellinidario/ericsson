@@ -140,6 +140,13 @@ class Config:
         # ===== photodiode =====
         self.photodiode_bandwidth = 25e9        # post-detection low-pass bandwidth
 
+        # ===== channel source (exact physics vs data-trained digital surrogate) =====
+        self.channel_source = "physics"         # "physics": OpticalChannel with spec-fixed params
+                                                # (the simulation case). "surrogate": load the taps
+                                                # fitted on measured I/O (surrogate.fit_surrogate)
+                                                # from surrogate_checkpoint and FREEZE them.
+        self.surrogate_checkpoint = None        # state_dict path for channel_source="surrogate"
+
         # ===== JLT reference chain: RX digital filter + converter quantization =====
         self.tx_gaussian_bw = None              # digital Gaussian LPF (3-dB BW) CASCADED after the TX pulse
                                                 # filter, on the drive (Marco's sequence: first TX only,
@@ -157,6 +164,8 @@ class Config:
         self.dpd_hidden_width = 8               # leaky-ReLU hidden width
         self.dpd_hidden_layers = 1              # hidden DEPTH of the DPD (memory stays dpd_memory_symbols;
                                                 # depth adds pre-distortion capacity, e.g. C-band CD pre-comp)
+        self.dpd_hidden_widths = None           # per-layer TX hidden widths, e.g. [32, 64, 16] = "complex"
+                                                # TX (same structure as Asfand's RX). None -> legacy.
         self.tx_values_per_symbol = None        # E2E waveform granularity: None -> samples_per_symbol_rx;
                                                 # 4 -> sim-rate values (finer spectral control for CD pre-comp)
         self.drive_min_volt = 0.0               # DPD output range, lower bound
@@ -170,6 +179,16 @@ class Config:
                                                 # memory is ~1 symbol, so 11 taps are already generous
         self.ffe_hidden_width = 8               # nonlinear capacity. Small effect in O-band/ASE, but a STRONG
                                                 # lever in C-band (the nonlinear CD distortion: ~3.7x at 20 dB)
+        self.ffe_hidden_widths = None           # per-layer hidden widths, e.g. [32, 64, 16] = Asfand's
+                                                # "complex" RX (Luca 20/7). None -> legacy: ffe_hidden_width
+                                                # replicated ffe_hidden_layers times.
+        self.rx_bit_head = True                 # True (default): the RX-DSP output is a per-bit SIGMOID head
+                                                # producing z_k directly (Marco's formalism, as described in
+                                                # the JLT paper); the symbol softmax becomes a training-only
+                                                # auxiliary (anti-collapse CE). A/B verified: parity with the
+                                                # legacy marginalized-softmax at equal budget. False: legacy.
+                                                # NOTE: old checkpoints (no bit_head keys) need rx_bit_head=False
+                                                # to load, or FORCE_RETRAIN.
         self.ffe_hidden_layers = 1              # hidden DEPTH of the FFE (1 = classic two-FC receiver). Depth
                                                 # adds nonlinear inversion capacity (C-band CD x square-law).
         self.ffe_nonlinear = True               # True: leaky-ReLU FFE (nonlinear). False: a purely LINEAR

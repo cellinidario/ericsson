@@ -56,15 +56,24 @@ class Receiver(nn.Module):
             self.rx_gauss = None
         self.adc_bits = getattr(config, "adc_bits", None)      # ADC resolution (None = ideal)
 
-        hidden = config.ffe_hidden_width
+        # hidden widths: either a per-layer list (ffe_hidden_widths, e.g. [32, 64, 16] = Asfand's
+        # "complex" receiver) or the legacy single width replicated ffe_hidden_layers times.
+        widths = getattr(config, "ffe_hidden_widths", None)
+        if not widths:
+            widths = [config.ffe_hidden_width] * max(1, getattr(config, "ffe_hidden_layers", 1))
         # window of `memory` symbols, each contributing `samples_per_symbol_rx` samples
         self.window_size = config.ffe_memory_symbols * self.samples_per_symbol_rx
-        self.context_layer = nn.Linear(self.window_size, hidden)
+        self.context_layer = nn.Linear(self.window_size, widths[0])
         # optional extra hidden layers (depth = nonlinear inversion capacity, e.g. the short CD x square-law
         # distortion in C-band; 1 = the original two-FC receiver, no behaviour change)
-        extra = max(0, getattr(config, "ffe_hidden_layers", 1) - 1)
-        self.extra_layers = nn.ModuleList(nn.Linear(hidden, hidden) for _ in range(extra))
-        self.symbol_head = nn.Linear(hidden, self.modulation_order)   # M-way symbol classifier
+        self.extra_layers = nn.ModuleList(nn.Linear(widths[i], widths[i + 1])
+                                          for i in range(len(widths) - 1))
+        self.symbol_head = nn.Linear(widths[-1], self.modulation_order)   # M-way symbol classifier
+        # optional per-bit SIGMOID output head (Marco's z_k directly): m sigmoid units on the shared trunk.
+        # The symbol head is then a TRAINING-ONLY auxiliary (its CE keeps the 2^m classes distinct against
+        # the factorized-loss collapse); at inference only the bit head is used.
+        self.bit_head = (nn.Linear(widths[-1], self.num_bits)
+                         if getattr(config, "rx_bit_head", False) else None)
         self.ffe_nonlinear = getattr(config, "ffe_nonlinear", True)   # False -> purely linear FFE (no activation)
 
     def matched_and_decimate(self, photocurrent):
@@ -117,6 +126,17 @@ class Receiver(nn.Module):
     def forward(self, photocurrent):
         """photocurrent: (num_samples,) at the sim rate -> symbol logits: (num_symbols, M)."""
         return self.symbol_head(self.features(photocurrent)).squeeze(0)           # (num_symbols, M)
+
+    def bit_and_symbol_logits(self, photocurrent):
+        """One trunk pass -> (bit logits (num_symbols, m), symbol logits (num_symbols, M)).
+        Requires the sigmoid bit head (config.rx_bit_head = True)."""
+        h = self.features(photocurrent)
+        return self.bit_head(h).squeeze(0), self.symbol_head(h).squeeze(0)
+
+    def bit_posteriors_direct(self, photocurrent):
+        """z_k = sigmoid(bit head): per-bit posteriors, shape (num_bits, num_symbols)."""
+        h = self.features(photocurrent)
+        return torch.sigmoid(self.bit_head(h)).squeeze(0).T
 
 
 def bit_posteriors(symbol_logits, num_bits, symbol_bits=None):
