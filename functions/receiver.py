@@ -55,6 +55,11 @@ class Receiver(nn.Module):
         else:
             self.rx_gauss = None
         self.adc_bits = getattr(config, "adc_bits", None)      # ADC resolution (None = ideal)
+        # Sampling phase, in SIM samples within a symbol, applied before the 2-sps decimation of the
+        # bpam-4 front-end. Compensates the group delay of the chain so the pulse CENTRE lands on the
+        # even samples (amplitude) and the crossing on the odd ones (differential sign). 0 = the
+        # legacy behaviour, which was half a symbol off -- see windows_from.
+        self.decimation_phase = int(getattr(config, "rx_decimation_phase", 0))
 
         # hidden widths: either a per-layer list (ffe_hidden_widths, e.g. [32, 64, 16] = Asfand's
         # "complex" receiver) or the legacy single width replicated ffe_hidden_layers times.
@@ -129,17 +134,33 @@ class Receiver(nn.Module):
             # the optical filtering already happened on the FIELD inside the channel (where the sign
             # information is created by pulse interference), and the FFE window learns any further
             # filtering itself — the same front-end as the classical 2-sps BPAM equalizers.
-            x = photocurrent.view(1, 1, -1)[:, :, ::self.decimation]
+            # Decimate at the phase that puts the PULSE CENTRE on the even samples. Starting at
+            # index 0 (what this did until 2026-07-23) ignores the group delay of the chain (TX
+            # pulse filter, WSS, CD) and lands half a symbol off: measured at 8 sps, the amplitude
+            # separation at offset 0 was d'=1.06 against d'=3.60 at the true centre, and the sign
+            # separation 0.57 against 3.16 -- the two samples were effectively SWAPPED, each read
+            # where the other quantity peaks. The network still coped (it sees the whole window),
+            # which is why this cost a factor ~2 in BER instead of failing outright.
+            # phase is in SIM samples over one symbol period (0 .. sps_sim-1): reducing it modulo the
+            # decimation factor would make the useful phases unreachable.
+            ph = int(getattr(self, "decimation_phase", 0)) % max(1, self.samples_per_symbol_sim)
+            x = photocurrent.view(1, 1, -1)[:, :, ph::self.decimation]
         else:
             x = self.matched_and_decimate(photocurrent)
         if self.adc_bits is not None:                          # ADC: quantize the decimated samples (STE);
             lo, hi = float(x.min()), float(x.max())            # full-scale = observed range (ideal AGC)
             x = quantize_ste(x, self.adc_bits, lo, hi)
-        # sliding window of `win` samples, stride = samples_per_symbol_rx -> one window per symbol.
-        # `offset` staggers the window: the left pad shrinks and the right pad grows by `offset`,
-        # so the window slides forward by that many 2-sps samples while keeping one window/symbol.
-        pad = (win - self.samples_per_symbol_rx) // 2
-        x_pad = F.pad(x, (pad - offset, pad + offset))
+        # Sliding window of `win` samples, stride = samples_per_symbol_rx -> one window per symbol,
+        # CENTRED on sample (s'*k + offset): offset=0 puts the centre on the symbol sample (middle of
+        # the pulse, where the amplitude lives), offset=1 on the T/2 sample (the crossing between two
+        # adjacent pulses, where the sign change lives) -- Marco's two staggered windows.
+        # The left pad must be (win-1)//2 for the centre to land on the symbol sample: the old
+        # (win - s')//2 was off by one for ODD windows, which silently swapped the two trunks
+        # (the "amplitude" window sat on the crossing and vice versa). Total padding is unchanged,
+        # so the number of windows is still one per symbol.
+        pad_total = win - self.samples_per_symbol_rx
+        pad_left = (win - 1) // 2 - offset
+        x_pad = F.pad(x, (pad_left, pad_total - pad_left))
         windows = x_pad.unfold(2, win, self.samples_per_symbol_rx)                # (1, 1, num_symbols, win)
         num_symbols = windows.shape[2]
         return windows.permute(0, 2, 1, 3).reshape(1, num_symbols, -1)            # (1, num_symbols, win)

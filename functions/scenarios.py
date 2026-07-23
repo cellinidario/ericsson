@@ -8,7 +8,7 @@ produced by throwaway drivers and the notebook had drifted to a different chain)
 co-authors (2026-07-20):
 
   TX-DSP -> 20 GHz rectangular digital filter -> 10 GHz Gaussian digital filter -> DAC (6 bit)
-  -> single-segment MZM (null bias, ER 25 dB) -> 10.238 km C-band SMF (beta2 = -21.7 ps^2/km)
+  -> single-segment MZM (null bias, ER 30 dB) -> 10.238 km C-band SMF (beta2 = -21.7 ps^2/km)
   -> WSS optical filter (1.53 Rs flat top, 18 GHz edges) + ASE on the field
   -> square-law photodiode (25 GHz) -> 10 GHz Gaussian digital filter
   -> 2 samples/symbol -> ADC (N_ADC bit, ideal AGC) -> RX-DSP (per-bit sigmoid head)
@@ -47,12 +47,19 @@ def jlt_chain(width=16, depth=1, adc_bits=None, dac_bits=6, band="cband",
     cfg = Config()
     cfg.set_wavelength_band(band)
     cfg.noise_regime = "ase"
-    cfg.modulator = "mzm"                    # null-biased MZM, ER 25 dB (Config default)
+    cfg.modulator = "mzm"                    # null-biased MZM, ER 30 dB (Config default)
 
     # digital filters of the agreed chain
     cfg.tx_filter = "freq-rect"              # 20 GHz brick-wall on the drive
     cfg.rx_filter = "freq-rect"
-    cfg.tx_gaussian_bw = 10e9                # Gaussian cascaded after the TX pulse filter
+    cfg.tx_gaussian_bw = None                # NO TX Gaussian: the 20 GHz rect drive goes straight to the
+                                             # MZM. Removing it recovers the bandwidth the group's baseline
+                                             # has (they filter at 10 GHz, we filtered at ~7.1 equivalent).
+                                             # NB: this does NOT make our TX equal to the baseline's -- the
+                                             # baseline pulse is NRZ (time-rectangular, roll-off 0.85), ours
+                                             # is a 20 GHz brick-wall. Harmless for the E2E, which learns its
+                                             # own waveform on top of this basis; NOT harmless for a FIXED
+                                             # transmitter -- see bpam_classic_rx, which uses NRZ instead.
     cfg.rx_gaussian_bw = 10e9                # Gaussian on the photocurrent, before decimation
 
     # converters (straight-through estimator -> quantization-aware training)
@@ -99,19 +106,32 @@ def asfand_complex(adc_bits=None, precode=False, dac_bits=6, band="cband", sps=2
     return cfg
 
 
-def bpam_classic_rx(adc_bits=None, dac_bits=6, band="cband", rx_window_symbols=11):
-    """Classical BPAM transmitter (fixed levels + differential precoder, LINEAR MZM drive at the
-    prof's Vpeak=0.6) with the complex NN receiver only -- the RX-only / receiver-side case, to
-    compare against the E2E. Uses sps=4: the differential SIGN lives in the T/2 cross-term, which
-    needs 4 samples/symbol to be resolved (at sps=2 it is aliased; the study of 2026-07-22 showed
-    the sign BER is 5x worse at sps=2, flat from 4 to 16). The E2E instead uses sps=2 (it learns
-    a signaling that is robust at 2 sps) -- see asfand_complex.
+def bpam_classic_rx(adc_bits=None, dac_bits=6, band="cband", rx_window_symbols=6, vpeak=0.6):
+    """Standard BPAM transmitter (fixed levels + differential precoder, LINEAR MZM drive at the
+    prof's Vpeak=0.6) with the NN receiver only -- the RX-only / receiver-side case, to compare
+    against the E2E. This reproduces in the PyTorch chain the result validated on the prof's MATLAB
+    simulator: RX-only NN on Asfand's curve (2026-07-23).
+
+    TX pulse = NRZ (band-limited, roll-off 0.85), which keeps h(T/2) ~ 50% so the differential SIGN
+    survives in the T/2 cross-term of adjacent pulses. The E2E's ideal frequency rect nulls h(T/2)
+    and destroys the sign for a FIXED transmitter (the E2E gets away with it because the DPD learns
+    its own waveform, writing the crossing sample directly). Any TX filter after the NRZ pulse only
+    hurts: an ideal 20 GHz rect is harmless (h(T/2) 50% -> 45%, cfg.nrz_rect_cutoff_ratio=1.0), a
+    10 GHz Gaussian costs ~0.5 dB.
+
+    Receiver: one NN 64-128-32 with sigmoid outputs, single context window of 6 whole symbols
+    (12 samples at 2 sps) -- the union of Asfand's two staggered 11-sample windows. Measured
+    equivalent to two independent nets and to staggered windows (within 3%), so the simplest form.
+
+    Uses sps=4: the sign lives in the T/2 cross-term, which needs >2 samples/symbol to be resolved.
     """
     cfg = jlt_chain(width=16, depth=1, adc_bits=adc_bits, dac_bits=dac_bits, band=band,
                     rx_window_symbols=rx_window_symbols)
-    cfg.ffe_hidden_widths = [32, 64, 16]          # same complex RX as asfand_complex
-    cfg.equalizer = "ffe"                          # RX-only: fixed classical BPAM at the TX
-    cfg.bpam_classic_drive_swing = 0.6             # linear MZM drive (recovers the sign; = the prof)
+    cfg.ffe_hidden_widths = [64, 128, 32]          # doubled-neuron RX (Stella), single window (Marco)
+    cfg.equalizer = "ffe"                          # RX-only: fixed standard BPAM at the TX
+    cfg.tx_filter = "nrz"                           # band-limited NRZ pulse (keeps the sign; see above)
+    cfg.tx_gaussian_bw = None                       # no TX Gaussian (it halves h(T/2))
+    cfg.bpam_classic_drive_swing = vpeak           # 0.6 = the reference simulator (linear-eq optimum)
     cfg.samples_per_symbol_sim = 4                 # 4 sps to resolve the T/2 sign cross-term
     cfg._compute_derived()
     cfg.set_modulation_format("bpam-4")

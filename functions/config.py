@@ -116,7 +116,7 @@ class Config:
         # ===== MZM (modulator == "mzm"): E = 1/2 (e^{j*phi} + gamma*e^{-j*phi}) =====
         self.num_mzm_segments = 1               # single segment (Marco's JLT model); >1 -> segmented MZM (phases sum)
         self.mzm_vpi_volt = 5.0                 # half-wave voltage V_pi
-        self.mzm_extinction_ratio_db = 25.0     # finite extinction ratio -> gamma = (sqrt(ER)-1)/(sqrt(ER)+1)
+        self.mzm_extinction_ratio_db = 30.0     # finite extinction ratio -> gamma = (sqrt(ER)-1)/(sqrt(ER)+1)
         self.mzm_bias_volt = None               # MZM bias voltage. None -> Vpi (bpam null bias / upam default).
                                                 # Detuning toward quadrature (e.g. 0.8*Vpi) adds a carrier and,
                                                 # with finite ER, a quadrature field component -> an ACTIONABLE

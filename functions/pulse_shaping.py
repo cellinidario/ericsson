@@ -51,6 +51,35 @@ def brickwall(cutoff_hz, sample_rate, span_symbols, samples_per_symbol):
     return taps
 
 
+def nrz_pulse(rolloff, span_symbols, samples_per_symbol, rect_cutoff_ratio=None):
+    """The prof's band-limited NRZ pulse (trans_func.m 'NRZ'): a rectangle of duration T with
+    raised-cosine edges, whose spectrum is H(f) = sinc(f/Rs) * cos(pi*ro*f/Rs)/(1-(2*ro*f/Rs)^2).
+
+    Unlike the ideal frequency rect (brickwall -> a sinc in time, exactly zero at +-T/2), this pulse
+    keeps h(+-T/2) ~= 50% of the peak. That value is exactly what a symbol contributes to its
+    neighbour's T/2 crossing sample, where the differential SIGN lives (the cross term
+    2 Re(x_k x*_{k+1}) under direct detection). Measured 2026-07-23: NRZ 50%, Gaussian-only 25%,
+    ideal rect 0% -> the sign BER tracks this number over three orders of magnitude.
+
+    rect_cutoff_ratio: optional ideal low-pass AFTER the NRZ shaping, cutoff in units of Rs
+    (1.0 = 20 GHz at 20 GBaud). This is Stella/Marco's real TX (NRZ then 20 GHz rect); it only
+    trims the sinc side-lobes and is harmless (h(T/2) 50% -> 45%). None = pure NRZ."""
+    n_fft = 1 << 15
+    fn = np.fft.fftfreq(n_fft, d=1.0 / samples_per_symbol)          # frequency in units of Rs
+    den = 1.0 - (2 * rolloff * fn) ** 2
+    with np.errstate(divide="ignore", invalid="ignore"):
+        H = np.sinc(fn) * np.cos(np.pi * rolloff * fn) / den
+    H[np.abs(den) < 1e-9] = (rolloff / 2 * np.sin(np.pi / (2 * rolloff))) if rolloff > 0 else 0.0
+    H[0] = 1.0
+    if rect_cutoff_ratio is not None:
+        H = H * (np.abs(fn) <= rect_cutoff_ratio)
+    h = np.fft.fftshift(np.real(np.fft.ifft(H)))
+    center = n_fft // 2
+    num_taps = span_symbols * samples_per_symbol + 1
+    idx = center + (np.arange(num_taps) - (num_taps - 1) // 2)
+    return h[idx]
+
+
 def upsample_and_shape(symbol_levels, rrc_taps, samples_per_symbol):
     """Zero-stuff the symbol-rate levels by samples_per_symbol, then RRC filter.
 

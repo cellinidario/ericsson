@@ -210,3 +210,54 @@ sapere da loro qual e' la configurazione di riferimento per il paper.
 - Chiedere a Li i parametri e riprodurre il suo setup esatto
 - NB: Vpeak 1.0 NON è più "fedele al prof" (che usa 0.6) -> se lo teniamo va dichiarato, oppure
   va chiesto a Li/Stella quale punto di lavoro usano loro.
+
+# ============================================================================
+# RISOLTA (23/7 sera): il gap era l'IMPULSO AL TX, non il ricevitore
+# ============================================================================
+
+CAUSA: il bit di fase e' governato da h(T/2), il valore dell'impulso TX a mezzo simbolo dal centro
+-- cioe' quanto un simbolo contribuisce al campione d'incrocio del vicino, dove vive il termine
+2Re(x_k x*_{k+1}) che porta il segno differenziale. Relazione monotona su 3 ordini di grandezza,
+misurata sui campioni del simulatore del prof con la NOSTRA RX-NN (OSNR 17, ER30, Vpeak 0.6, ADC6):
+
+  impulso TX                       h(T/2)/h(0)   BER fase    BER tot    vs Asfand
+  NRZ (rettangolo T + roll-off)       63%        3.30e-4     1.090e-3     0.91x
+  rect 20 GHz + gaussiano 10          25%        3.00e-3     2.268e-3     1.89x
+  gaussiano 10 GHz solo              ~25%        2.53e-3     2.108e-3     1.76x
+  rect ideale 20 GHz                   0%        6.44e-2     3.458e-2    28.8x
+
+Shift orizzontale medio vs Asfand: NRZ -0.07 dB | gauss +0.52 | cascata +0.55 | rect: curva a floor.
+=> CON L'NRZ SIAMO SULLA CURVA DI ASFAND. Dati: results/paper/txfilter_scan.txt.
+
+PERCHE' la rect ideale a 20 GHz azzera il segno: il suo sinc ha gli zeri a multipli di T/2, quindi
+h(T/2)=0 ESATTO -- il campione d'incrocio non riceve nulla dai due simboli adiacenti. Verificato
+anche che il nostro vecchio "time-rect" (sample-and-hold, rettangolo largo esattamente T) ha pure
+h(T/2)=0: NON era l'NRZ del prof, che e' un FILTRO con roll-off 0.85 e arriva al 63%. Due cose con
+lo stesso nome e comportamento opposto.
+
+PROVA INDIPENDENTE DAL NOSTRO CODICE: con la rect ideale nuda collassa anche l'equalizzatore lineare
+DEL PROF nel SUO simulatore (BER 5.2e-2 @OSNR17, 3.5e-2 @19, curva che non scende). Quindi il ramo
+BPAM classico del setup di Asfand non puo' usare quella rect: deve avere un impulso con
+sovrapposizione a T/2. Da portare al gruppo -- e' verificabile da loro in dieci minuti.
+
+L'E2E NON e' affetto: il DPD emette 2 valori per simbolo (tx_subsymbols=2, zero-stuffing a passo
+T/2), quindi SCRIVE direttamente il campione d'incrocio invece di ottenerlo per sovrapposizione. E'
+il motivo per cui le curve complex sono sempre state sane mentre le rxonly no.
+
+## Cosa era stato escluso prima di arrivarci (tutte misure poi rifatte pulite)
+capacita' della rete (3.9k -> 400k parametri, lr calibrato: satura), durata (60k -> 240k step),
+loss (BCE vs CE+BCE), lunghezza finestra (allungarla PEGGIORA), reti sfalsate di Marco
+(implementate correttamente: nessuna differenza misurabile), campioni/simbolo (Asfand usa 2 come
+noi), punto di lavoro MZM (Vpeak 1.0 vale 1.17x: reale ma non risolutivo).
+
+## Errori di metodo di questa indagine, da non ripetere
+1. Tre verdetti ("architettura esclusa", "fase di campionamento sbagliata", "limite nell'ingresso")
+   dichiarati su misure che non verificavano cio' che credevo. Il caso peggiore: avevo controllato
+   che le due finestre sfalsate DIFFERISSERO di un campione -- vero e inutile -- invece di dove
+   fossero CENTRATE (erano invertite). Un test che conferma la proprieta' sbagliata e' peggio di
+   nessun test: da' fiducia ingiustificata.
+2. Il dato risolutivo (nostra NN sui campioni del prof = 1.12e-3, meglio di Asfand) era su disco
+   dalle 12 del 23/7. L'avevo letto come "validazione della catena" invece che come "la nostra rete
+   va MEGLIO sui loro campioni, quindi il nostro segnale e' peggiore".
+3. Dario ha corretto la rotta tre volte: "siamo sicuri della finestra sfalsata?", "siamo noi quelli
+   strani, non Asfand", "siamo mai arrivati a 1x?". Le tre svolte vengono da li'.

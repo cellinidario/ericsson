@@ -146,6 +146,10 @@ class Transmitter(nn.Module):
             if self.pulse_kind in ("freq-rect", "rect"):
                 tx_taps = brickwall(config.rect_filter_bandwidth, config.sim_sample_rate,
                                     config.rrc_span_symbols, self.samples_per_symbol)
+            elif self.pulse_kind == "nrz":
+                from pulse_shaping import nrz_pulse                 # prof's NRZ: h(T/2) ~ 50% (keeps the sign)
+                tx_taps = nrz_pulse(config.rrc_rolloff, config.rrc_span_symbols, self.samples_per_symbol,
+                                    getattr(config, "nrz_rect_cutoff_ratio", None))
             else:
                 tx_taps = root_raised_cosine(config.rrc_rolloff, config.rrc_span_symbols, self.samples_per_symbol)
             tx_taps = tx_taps / tx_taps.max()
