@@ -23,7 +23,7 @@ import torch.nn.functional as F
 from config import Config
 from channel import OpticalChannel
 from surrogate import build_channel
-from transmitter import Transmitter, bits_to_symbols
+from transmitter import Transmitter, bits_to_symbols, coded_bpam_target, differential_decode
 from receiver import Receiver, bit_posteriors
 from utils import add_awgn, measure_ber, theoretical_ber_unipolar, theoretical_ber_unipolar_ase
 
@@ -41,6 +41,25 @@ def level_gap_spread(photocurrent, symbols, samples_per_symbol, guard, modulatio
     means = torch.sort(torch.stack([measured[syms == q].mean() for q in range(modulation_order)])).values
     gaps = means[1:] - means[:-1]
     return (gaps.std() / (gaps.mean().abs() + 1e-9)).item()
+
+
+def _measure_ber_diff(bit_probability, raw_bits, edge_guard, max_shift=3):
+    """BER for the differential-precoder case: the RX posteriors estimate the sign STATE; decide it,
+    differential-decode (raw_phase[k]=state[k] XOR state[k-1]), then compare to the RAW bits. The
+    shift search is done on the DECODED stream (group-delay robustness), mirroring measure_ber."""
+    import torch
+    state = (bit_probability > 0.5).to(torch.int64)              # decided sign state (row1) + amplitude (row0)
+    decoded = differential_decode(state).to(torch.int64)
+    raw = raw_bits.to(torch.int64)
+    n = decoded.shape[1]
+    best_ber, best_shift = 1.0, 0
+    for shift in range(-max_shift, max_shift + 1):
+        a0, a1 = edge_guard + max(0, shift), n - edge_guard + min(0, shift)
+        b0, b1 = edge_guard - min(0, shift), n - edge_guard - max(0, shift)
+        err = (decoded[:, a0:a1] != raw[:, b0:b1]).float().mean().item()
+        if err < best_ber:
+            best_ber, best_shift = err, shift
+    return best_ber, best_shift
 
 
 def link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver=None):
@@ -186,12 +205,30 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
     if equalizer == "end-to-end":
         params = list(transmitter.parameters()) + params      # "end-to-end": also train the DPD
     optimizer = torch.optim.Adam(params, lr=config.learning_rate)
+    # Optional LR decay. Default None = constant LR (every result before 22/7 was produced this way,
+    # so those runs stay reproducible). A constant 1e-3 over 100k steps leaves the decision boundaries
+    # jittering in gradient noise; that floor is invisible at low SNR (noise dominates) but sets the
+    # high-SNR BER -- the same "damage grows with OSNR" signature as the gap to Li's receiver.
+    scheduler = None
+    if getattr(config, "lr_schedule", None) == "cosine":
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=num_steps, eta_min=config.learning_rate * 0.01)
+    # Differential-precoder target: when the TX precodes the sign (ffe always; E2E if precode_e2e),
+    # the RX observes the sign STATE, not the raw phase bit. bpam_diff_target="coded" trains/evaluates
+    # against that state and differential-decodes before the BER (Marco's well-posed scheme).
+    precode_on = bpam and (equalizer != "end-to-end" or getattr(config, "bpam_precode_e2e", False))
+    coded_target = precode_on and getattr(config, "bpam_diff_target", "raw") == "coded"
     loss_name = "symbol CE + per-bit BCE" if bpam else "symbol cross-entropy"
+    if coded_target:
+        loss_name += " (coded sign target)"
     print(f"=== training (equalizer={equalizer}) — {loss_name} ===")
     for step in range(num_steps):
         ebn0_db = float(np.random.uniform(*ebn0_range))
         bits = random_bits(config.bits_per_symbol, window, device)
-        symbols = bits_to_symbols(bits, config.bits_per_symbol)
+        # target the RX is trained against: the coded sign state (well posed with the precoder) or the
+        # raw bits (legacy / E2E without precoder). Row 0 (amplitude) is identical in both.
+        target_bits = coded_bpam_target(bits) if coded_target else bits
+        symbols = bits_to_symbols(target_bits, config.bits_per_symbol)
         noisy = link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver)  # ASE -> envelope; thermal -> photocurrent
         if bpam and receiver.bit_head is not None:
             bit_logits, logits = receiver.bit_and_symbol_logits(noisy)   # sigmoid bit head + aux symbol head
@@ -210,7 +247,7 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
                 posteriors = torch.sigmoid(bit_logits[guard:n - guard]).T                  # (k, n) P(b=1)
             else:
                 posteriors = bit_posteriors(logits[guard:n - guard], config.bits_per_symbol)  # (k, n) P(b=1)
-            bce = F.binary_cross_entropy(posteriors.clamp(1e-6, 1 - 1e-6), bits[:, guard:n - guard].float())
+            bce = F.binary_cross_entropy(posteriors.clamp(1e-6, 1 - 1e-6), target_bits[:, guard:n - guard].float())
             if getattr(config, "bpam_loss", "ce+bce") == "bce":
                 loss = bce                                       # true BPAM: allow sign-degenerate intensities
             else:
@@ -223,10 +260,16 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        if scheduler is not None:
+            scheduler.step()
         if step % max(1, num_steps // 8) == 0 or step == num_steps - 1:
             log_post = (torch.sigmoid(bit_logits).T if bit_logits is not None
                         else bit_posteriors(logits, config.bits_per_symbol))
-            ber, _ = measure_ber(log_post, bits, guard)
+            if coded_target:                              # decide the sign state, then differential-decode
+                decided = differential_decode((log_post > 0.5).to(log_post.dtype))
+                ber = (decided[:, guard:n - guard] != bits[:, guard:n - guard]).float().mean().item()
+            else:
+                ber, _ = measure_ber(log_post, bits, guard)
             with torch.no_grad():
                 spread = level_gap_spread(channel(transmitter(bits)), symbols, sps, guard, config.modulation_order)
             print(f"  step {step:4d}  ebn0 {ebn0_db:4.1f}  ce {loss.item():.8f}  gap-spread {spread:.3f}  BER {ber:.10f}")
@@ -237,6 +280,10 @@ def evaluate(transmitter, channel, receiver, config, ebn0_db_list, num_symbols, 
     transmitter.eval()
     receiver.eval()
     k = config.bits_per_symbol
+    equalizer = getattr(config, "equalizer", "end-to-end")
+    precode_on = (getattr(config, "modulation_format", "upam-4") == "bpam-4"
+                  and (equalizer != "end-to-end" or getattr(config, "bpam_precode_e2e", False)))
+    coded_target = precode_on and getattr(config, "bpam_diff_target", "raw") == "coded"
     if getattr(config, "modulation_format", "upam-4") == "bpam-4":
         # bpam-4: the BCE training target pins the bit labelling to the plain BINARY map -> same map here
         sym_bits = torch.tensor([[0, 0], [0, 1], [1, 0], [1, 1]], dtype=torch.long, device=device)
@@ -253,7 +300,10 @@ def evaluate(transmitter, channel, receiver, config, ebn0_db_list, num_symbols, 
             if use_bit_head:                                               # z_k from the sigmoid head directly
                 noisy = link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver)
                 post = receiver.bit_posteriors_direct(noisy)
-                ber, shift = measure_ber(post, bits, config.edge_guard_symbols)
+                if coded_target:                                           # decide sign state -> differential-decode -> BER vs raw bits
+                    ber, shift = _measure_ber_diff(post, bits, config.edge_guard_symbols)
+                else:
+                    ber, shift = measure_ber(post, bits, config.edge_guard_symbols)
             else:
                 logits = forward_link(transmitter, channel, receiver, bits, ebn0_db, config)
                 post = bit_posteriors(logits, k, symbol_bits=sym_bits)     # P(b_i = 1) under amplitude-Gray

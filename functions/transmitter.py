@@ -26,6 +26,25 @@ def bits_to_symbols(bits, bits_per_symbol):
     return (bits * weights).sum(dim=0)
 
 
+def coded_bpam_target(bits):
+    """The bits the RECEIVER actually observes when the differential precoder is on: row 0 is the
+    amplitude bit (unchanged), row 1 is the transmitted sign STATE (cumsum%2). Training against this
+    is well posed (each symbol carries its own sign state); the raw phase bit is recovered afterwards
+    by differential_decode. (For row 0, coded == raw.)"""
+    sign_state = torch.cumsum(bits[1], dim=0) % 2
+    return torch.stack([bits[0], sign_state])
+
+
+def differential_decode(sign_state_bits):
+    """Invert the precoder on the SIGN row: raw_phase[k] = sign_state[k] XOR sign_state[k-1].
+    Input/return shape (num_bits, num_symbols); row 0 (amplitude) passes through unchanged."""
+    out = sign_state_bits.clone()
+    row = sign_state_bits[1].to(torch.int64)
+    out[1] = (row ^ torch.roll(row, 1, dims=0)).to(sign_state_bits.dtype)
+    out[1, 0] = row[0]                                  # first symbol: no predecessor (state = raw)
+    return out
+
+
 class Transmitter(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -95,7 +114,16 @@ class Transmitter(nn.Module):
             # the 4 voltages evenly spaced over the whole MZM characteristic (Secondini2020, eq. 21);
             # linear-FIELD modulator  V = f*Vmax. Indexed by (amp_bit*2 + sign_state).
             field = torch.tensor([+0.5, -0.5, +1.0, -1.0], dtype=torch.float32)   # (amp,state)=(0,0),(0,1),(1,0),(1,1)
-            if self.modulator_kind == "mzm":
+            swing = getattr(config, "bpam_classic_drive_swing", None)
+            if self.modulator_kind == "mzm" and swing:
+                # LINEAR drive at a fraction `swing` of Vpi (quasi-linear MZM region, Secondini/prof).
+                # The arccos mapping below sends +-1.0 to +-Vpi (the MZM rails), where the optical PHASE
+                # saturates and the adjacent-pulse cross term that carries the differential SIGN in DD is
+                # compressed -- measured to raise the phase BER ~4x. The linear drive keeps the phase
+                # relation and recovers the sign (verified: matches the reference receiver).
+                vpi = config.mzm_vpi_volt
+                fixed = vpi * swing * field
+            elif self.modulator_kind == "mzm":
                 vpi = config.mzm_vpi_volt
                 fixed = vpi * (1.0 - (2.0 / np.pi) * torch.arccos(field))
             else:
@@ -127,7 +155,10 @@ class Transmitter(nn.Module):
         """Differential sign precoder for bpam-4 (OUTSIDE the network, like the Gray map: a discrete
         structure a finite-window net cannot learn, because the absolute sign is unobservable in DD --
         only sign CHANGES between adjacent pulses are). Row 0 = amplitude bit; row 1 = phase-difference
-        bit (dphi in {0, pi}). Returns (amp_bit, sign_state), sign_state_k = XOR-cumulated phase bits."""
+        bit (dphi in {0, pi}). Returns (amp_bit, sign_state), sign_state_k = XOR-cumulated phase bits.
+
+        Marco's recursion c2[k] = c2[k-1] XOR b2[k] equals cumsum%2 (each output = XOR of all
+        preceding input phase bits); it is NOT the wrong adjacent XOR b2[k-1] XOR b2[k]."""
         sign_state = torch.cumsum(bits[1], dim=0) % 2
         return torch.stack([bits[0], sign_state])
 

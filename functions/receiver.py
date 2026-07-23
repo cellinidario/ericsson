@@ -61,8 +61,10 @@ class Receiver(nn.Module):
         widths = getattr(config, "ffe_hidden_widths", None)
         if not widths:
             widths = [config.ffe_hidden_width] * max(1, getattr(config, "ffe_hidden_layers", 1))
-        # window of `memory` symbols, each contributing `samples_per_symbol_rx` samples
-        self.window_size = config.ffe_memory_symbols * self.samples_per_symbol_rx
+        # window of `memory` symbols, each contributing `samples_per_symbol_rx` samples.
+        # int(): ffe_memory_symbols may be a half-integer to express an ODD window in samples --
+        # Asfand's receivers use 11 samples = 5.5 symbols at 2 sps (Marco, 22/7).
+        self.window_size = int(round(config.ffe_memory_symbols * self.samples_per_symbol_rx))
         self.context_layer = nn.Linear(self.window_size, widths[0])
         # optional extra hidden layers (depth = nonlinear inversion capacity, e.g. the short CD x square-law
         # distortion in C-band; 1 = the original two-FC receiver, no behaviour change)
@@ -75,6 +77,24 @@ class Receiver(nn.Module):
         self.bit_head = (nn.Linear(widths[-1], self.num_bits)
                          if getattr(config, "rx_bit_head", False) else None)
         self.ffe_nonlinear = getattr(config, "ffe_nonlinear", True)   # False -> purely linear FFE (no activation)
+
+        # DUAL-NETWORK receiver (bpam-4): one INDEPENDENT network per bit -- net 1 for the amplitude
+        # bit a_k (which lives in the symbol-centre sample) and net 2 for the differential phase bit
+        # dphi_k (which lives in the T/2 cross-term). With a single shared trunk the two bits compete
+        # for the same features and both saturate; separate trunks let each specialise.
+        self.dual_network = bool(getattr(config, "rx_dual_network", False))
+        # Marco (22/7): Asfand's two receivers see windows STAGGERED BY ONE 2-sps SAMPLE, each
+        # centred on the quantity it estimates -- the amplitude in the middle of the pulse
+        # (offset 0), the sign change at the intersection of two adjacent pulses (offset 1).
+        # An earlier attempt with two trunks on the SAME window scored exactly like the single
+        # trunk (1.36e-2 vs 1.31e-2 @OSNR15): without the stagger there is nothing to specialise on.
+        self.phase_window_offset = int(getattr(config, "rx_phase_window_offset", 1))
+        if self.dual_network:
+            self.context_layer2 = nn.Linear(self.window_size, widths[0])
+            self.extra_layers2 = nn.ModuleList(nn.Linear(widths[i], widths[i + 1])
+                                               for i in range(len(widths) - 1))
+            self.bit_head1 = nn.Linear(widths[-1], 1)      # amplitude bit, from trunk 1
+            self.bit_head2 = nn.Linear(widths[-1], 1)      # phase bit, from trunk 2
 
     def matched_and_decimate(self, photocurrent):
         """Matched filter + downsample to the symbol rate -> (1, 1, num_symbols * sps_rx).
@@ -92,8 +112,15 @@ class Receiver(nn.Module):
         x = F.conv1d(photocurrent.view(1, 1, -1), self.matched, padding=self.matched.shape[-1] // 2)
         return x[:, :, ::self.decimation]
 
-    def features(self, photocurrent):
-        """Shared FFE features per symbol: (1, num_symbols, hidden)."""
+    def windows_from(self, photocurrent, offset=0, window_size=None):
+        """Front-end shared by every trunk: RX Gaussian, decimation to s' sps, ADC, then one
+        sliding window per symbol -> (1, num_symbols, window_size).
+
+        `offset` shifts the window by whole 2-sps samples. Marco (22/7): Asfand's two receivers
+        use windows STAGGERED BY ONE SAMPLE, each centred on the quantity it estimates -- the
+        amplitude in the middle of the pulse, the sign change at the intersection of two adjacent
+        pulses. offset=0 -> centred on the symbol; offset=1 -> centred on the T/2 crossing."""
+        win = self.window_size if window_size is None else window_size
         if self.rx_gauss is not None:                          # digital Gaussian LPF (JLT: 10 GHz)
             photocurrent = F.conv1d(photocurrent.view(1, 1, -1), self.rx_gauss,
                                     padding=self.rx_gauss.shape[-1] // 2).view(-1)
@@ -108,20 +135,39 @@ class Receiver(nn.Module):
         if self.adc_bits is not None:                          # ADC: quantize the decimated samples (STE);
             lo, hi = float(x.min()), float(x.max())            # full-scale = observed range (ideal AGC)
             x = quantize_ste(x, self.adc_bits, lo, hi)
-        # sliding window of `window_size` samples, stride = samples_per_symbol_rx -> one window per symbol
-        pad = (self.window_size - self.samples_per_symbol_rx) // 2
-        x_pad = F.pad(x, (pad, pad))
-        windows = x_pad.unfold(2, self.window_size, self.samples_per_symbol_rx)   # (1, 1, num_symbols, window_size)
+        # sliding window of `win` samples, stride = samples_per_symbol_rx -> one window per symbol.
+        # `offset` staggers the window: the left pad shrinks and the right pad grows by `offset`,
+        # so the window slides forward by that many 2-sps samples while keeping one window/symbol.
+        pad = (win - self.samples_per_symbol_rx) // 2
+        x_pad = F.pad(x, (pad - offset, pad + offset))
+        windows = x_pad.unfold(2, win, self.samples_per_symbol_rx)                # (1, 1, num_symbols, win)
         num_symbols = windows.shape[2]
-        flat = windows.permute(0, 2, 1, 3).reshape(1, num_symbols, -1)            # (1, num_symbols, window_size)
-        hidden = self.context_layer(flat)                                         # (1, num_symbols, hidden)
+        return windows.permute(0, 2, 1, 3).reshape(1, num_symbols, -1)            # (1, num_symbols, win)
+
+    def _trunk(self, flat, context_layer, extra_layers):
+        """One fully-connected trunk applied to the per-symbol windows."""
+        hidden = context_layer(flat)
         if self.ffe_nonlinear:
             hidden = F.leaky_relu(hidden)                                         # nonlinear FFE (linear if False)
-        for layer in self.extra_layers:                                           # optional depth (see __init__)
+        for layer in extra_layers:                                                # optional depth (see __init__)
             hidden = layer(hidden)
             if self.ffe_nonlinear:
                 hidden = F.leaky_relu(hidden)
         return hidden
+
+    def features(self, photocurrent):
+        """Shared FFE features per symbol: (1, num_symbols, hidden)."""
+        return self._trunk(self.windows_from(photocurrent), self.context_layer, self.extra_layers)
+
+    def dual_bit_logits(self, photocurrent):
+        """Dual-network receiver: independent trunk per bit -> bit logits (num_symbols, 2).
+        Trunk 1 -> amplitude bit (window centred on the symbol), trunk 2 -> differential phase
+        bit (window staggered by rx_phase_window_offset samples, onto the T/2 crossing)."""
+        h1 = self._trunk(self.windows_from(photocurrent, offset=0),
+                         self.context_layer, self.extra_layers)
+        h2 = self._trunk(self.windows_from(photocurrent, offset=self.phase_window_offset),
+                         self.context_layer2, self.extra_layers2)
+        return torch.cat([self.bit_head1(h1), self.bit_head2(h2)], dim=-1).squeeze(0)
 
     def forward(self, photocurrent):
         """photocurrent: (num_samples,) at the sim rate -> symbol logits: (num_symbols, M)."""
@@ -129,12 +175,23 @@ class Receiver(nn.Module):
 
     def bit_and_symbol_logits(self, photocurrent):
         """One trunk pass -> (bit logits (num_symbols, m), symbol logits (num_symbols, M)).
-        Requires the sigmoid bit head (config.rx_bit_head = True)."""
+        Requires the sigmoid bit head (config.rx_bit_head = True). With the dual-network receiver
+        the bit logits come from the two independent trunks and the auxiliary symbol head from
+        trunk 1 (it is a training-only anti-collapse term)."""
+        if self.dual_network:
+            h1 = self._trunk(self.windows_from(photocurrent, offset=0),
+                             self.context_layer, self.extra_layers)
+            h2 = self._trunk(self.windows_from(photocurrent, offset=self.phase_window_offset),
+                             self.context_layer2, self.extra_layers2)
+            bit_logits = torch.cat([self.bit_head1(h1), self.bit_head2(h2)], dim=-1).squeeze(0)
+            return bit_logits, self.symbol_head(h1).squeeze(0)
         h = self.features(photocurrent)
         return self.bit_head(h).squeeze(0), self.symbol_head(h).squeeze(0)
 
     def bit_posteriors_direct(self, photocurrent):
         """z_k = sigmoid(bit head): per-bit posteriors, shape (num_bits, num_symbols)."""
+        if self.dual_network:
+            return torch.sigmoid(self.dual_bit_logits(photocurrent)).T
         h = self.features(photocurrent)
         return torch.sigmoid(self.bit_head(h)).squeeze(0).T
 

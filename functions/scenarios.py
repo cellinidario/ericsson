@@ -31,13 +31,18 @@ TRAIN_STEPS = 100_000
 
 
 def jlt_chain(width=16, depth=1, adc_bits=None, dac_bits=6, band="cband",
-              rx_window_symbols=11):
+              rx_window_symbols=11, sps=2):
     """Config of the agreed JLT chain. Defaults reproduce the paper curve (W=16, D=1, N_DAC=6,
     ideal ADC). Set adc_bits=8/6/5 for the ADC-resolution family.
 
     width/depth apply to both the TX-DSP (DPD) and the RX-DSP (FFE). The 5-symbol memory limit
     of the TX-DSP (Ericsson LUT constraint, 2^10 entries) is part of the Config default and is
     NOT touched here; rx_window_symbols is free (measured neutral between 11 and 31).
+
+    sps = samples_per_symbol_sim (internal simulation rate). Default 2: the study of 2026-07-22
+    measured the E2E BER unchanged from 2 to 16 sps, so 2 (the true system oversampling) is
+    enough for the end-to-end case. The classical-BPAM RX-only case needs 4 to resolve the T/2
+    sign cross-term -- use bpam_classic_rx(), which sets it.
     """
     cfg = Config()
     cfg.set_wavelength_band(band)
@@ -62,15 +67,22 @@ def jlt_chain(width=16, depth=1, adc_bits=None, dac_bits=6, band="cband",
     cfg.ffe_hidden_layers = depth
     cfg.ffe_memory_symbols = rx_window_symbols
 
+    cfg.samples_per_symbol_sim = sps          # internal simulation rate (see docstring)
+    cfg._compute_derived()
     cfg.set_modulation_format("bpam-4")      # recomputes the derived quantities
     return cfg
 
 
-def asfand_complex(adc_bits=None, precode=False, dac_bits=6, band="cband"):
+def asfand_complex(adc_bits=None, precode=False, dac_bits=6, band="cband", sps=2):
     """The 'Asfand-comparable' configuration (Luca, mail 2026-07-20): same JLT chain, but the
     RX-DSP is Asfand's 'complex' NN — three fully-connected hidden layers (32, 64, 16) with a
     sigmoid output, context window of 5 symbols. The TX-DSP stays ours (Luca: 'or better if
     you even use TX optimization').
+
+    sps = samples_per_symbol_sim (internal simulation rate). Default 2: the study of 2026-07-22
+    showed the E2E BER is unchanged from 2 to 16 sps, so 2 (the true system oversampling) is
+    enough. (Classical-BPAM RX-only needs 4 to resolve the T/2 sign cross-term -- handled
+    separately when needed.)
 
     precode=True applies Marco's proposal (meeting 2026-07-20): the DPD input is the
     DIFFERENTIALLY ENCODED bit stream while loss and BER stay on the raw bits — the raw phase
@@ -81,7 +93,28 @@ def asfand_complex(adc_bits=None, precode=False, dac_bits=6, band="cband"):
                     rx_window_symbols=5)
     cfg.ffe_hidden_widths = [32, 64, 16]
     cfg.bpam_precode_e2e = bool(precode)
+    cfg.samples_per_symbol_sim = sps
+    cfg._compute_derived()
     cfg.set_modulation_format("bpam-4")      # recompute derived quantities after the overrides
+    return cfg
+
+
+def bpam_classic_rx(adc_bits=None, dac_bits=6, band="cband", rx_window_symbols=11):
+    """Classical BPAM transmitter (fixed levels + differential precoder, LINEAR MZM drive at the
+    prof's Vpeak=0.6) with the complex NN receiver only -- the RX-only / receiver-side case, to
+    compare against the E2E. Uses sps=4: the differential SIGN lives in the T/2 cross-term, which
+    needs 4 samples/symbol to be resolved (at sps=2 it is aliased; the study of 2026-07-22 showed
+    the sign BER is 5x worse at sps=2, flat from 4 to 16). The E2E instead uses sps=2 (it learns
+    a signaling that is robust at 2 sps) -- see asfand_complex.
+    """
+    cfg = jlt_chain(width=16, depth=1, adc_bits=adc_bits, dac_bits=dac_bits, band=band,
+                    rx_window_symbols=rx_window_symbols)
+    cfg.ffe_hidden_widths = [32, 64, 16]          # same complex RX as asfand_complex
+    cfg.equalizer = "ffe"                          # RX-only: fixed classical BPAM at the TX
+    cfg.bpam_classic_drive_swing = 0.6             # linear MZM drive (recovers the sign; = the prof)
+    cfg.samples_per_symbol_sim = 4                 # 4 sps to resolve the T/2 sign cross-term
+    cfg._compute_derived()
+    cfg.set_modulation_format("bpam-4")
     return cfg
 
 
@@ -95,5 +128,6 @@ def checkpoint_name(cfg, width, depth, adc_bits, seed, steps, band="cband"):
     arch = ("W" + "-".join(str(w) for w in widths)) if widths else f"W{width}_D{depth}"
     win = getattr(cfg, "ffe_memory_symbols", 11)
     pre = "_diffpre" if getattr(cfg, "bpam_precode_e2e", False) else ""
-    return (f"results/jlt_{band}_bpam4_{arch}_win{win}_{dac}_{adc}{pre}"
+    sps = getattr(cfg, "samples_per_symbol_sim", 4)      # encode sps: a 2-sps run must not load a 4-sps ckpt
+    return (f"results/jlt_{band}_bpam4_{arch}_win{win}_sps{sps}_{dac}_{adc}{pre}"
             f"_seed{seed}_{steps // 1000}k.pt")

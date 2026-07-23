@@ -80,6 +80,20 @@ class Config:
                                                 # distinct intensities -> double-rate/hybrid route) or "bce"
                                                 # (per-bit only; ALLOWS sign-degenerate intensities |+-A|^2
                                                 # -> true BPAM, sign recovered by T/2 interference).
+        self.bpam_classic_drive_swing = None    # classical BPAM (ffe/threshold, MZM): if set (the prof
+                                                # uses Vpeak=0.6, i.e. 0.6), drive the MZM LINEARLY at this
+                                                # fraction of Vpi instead of
+                                                # arccos-over-the-full-characteristic. The arccos levels put
+                                                # +-1 at the MZM rails, saturating the optical phase and
+                                                # compressing the T/2 cross-term that carries the differential
+                                                # SIGN in DD (~4x worse phase BER). Linear drive recovers it.
+                                                # Does NOT affect the E2E (which learns its own levels).
+        self.bpam_diff_target = "raw"           # when the differential precoder is on (ffe, or E2E with
+                                                # precode): "coded" trains the RX against the transmitted
+                                                # sign STATE (cumsum%2) and applies a differential decoder
+                                                # before the BER (Marco's scheme, well posed); "raw" (legacy)
+                                                # trains/evaluates against the absolute phase bit (only
+                                                # correct if the net learns the decode itself).
         self.bpam_precode_e2e = False           # bpam-4 E2E: apply the differential sign precoder in the
                                                 # end-to-end path too (True). Needed for the classical-BPAM
                                                 # route in a band-limited channel (freq-rect), where the sign
@@ -179,6 +193,16 @@ class Config:
                                                 # memory is ~1 symbol, so 11 taps are already generous
         self.ffe_hidden_width = 8               # nonlinear capacity. Small effect in O-band/ASE, but a STRONG
                                                 # lever in C-band (the nonlinear CD distortion: ~3.7x at 20 dB)
+        self.rx_dual_network = False            # bpam-4: TWO independent RX networks, one per bit
+                                                # (amplitude a_k / differential phase dphi_k) instead of a
+                                                # shared trunk. The two bits live in different samples
+                                                # (symbol centre vs T/2 cross-term), so a shared trunk makes
+                                                # them compete for the same features. Doubles the RX cost.
+        self.rx_phase_window_offset = 1         # stagger (in 2-sps samples) of the PHASE trunk's window w.r.t.
+                                                # the amplitude one. Marco (22/7): Asfand's two nets use windows
+                                                # offset by one sample, each centred on its own quantity --
+                                                # amplitude mid-pulse, sign change at the pulse intersection.
+                                                # 0 -> both trunks on the same window (measured: no gain).
         self.ffe_hidden_widths = None           # per-layer hidden widths, e.g. [32, 64, 16] = Asfand's
                                                 # "complex" RX (Luca 20/7). None -> legacy: ffe_hidden_width
                                                 # replicated ffe_hidden_layers times.
@@ -198,6 +222,10 @@ class Config:
         self.edge_guard_symbols = 64            # symbols dropped at both ends (filter transients)
         self.minibatch_symbols = 8192           # sliding-window minibatch length, in symbols
         self.learning_rate = 1e-3
+        self.lr_schedule = None                 # None = constant LR (all results before 22/7).
+                                                # "cosine" = anneal to lr/100 over the run, so the decision
+                                                # boundaries settle instead of jittering in gradient noise.
+                                                # Matters only at high SNR, where that jitter sets the floor.
 
         self._compute_derived()
 
