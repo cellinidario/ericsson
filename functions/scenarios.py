@@ -132,6 +132,7 @@ def bpam_classic_rx(adc_bits=None, dac_bits=6, band="cband", rx_window_symbols=6
     cfg.tx_filter = "nrz"                           # band-limited NRZ pulse (keeps the sign; see above)
     cfg.tx_gaussian_bw = None                       # no TX Gaussian (it halves h(T/2))
     cfg.bpam_classic_drive_swing = vpeak           # 0.6 = the reference simulator (linear-eq optimum)
+    cfg.dac_fullscale_from_signal = True            # DAC full-scale = actual drive peak (= the prof)
     cfg.samples_per_symbol_sim = 4                 # 4 sps to resolve the T/2 sign cross-term
     cfg._compute_derived()
     cfg.set_modulation_format("bpam-4")

@@ -61,6 +61,11 @@ class Transmitter(nn.Module):
         self.modulator_kind = getattr(config, "modulator", "mzm")                 # needed for bpam fixed levels
         self.precode_e2e = getattr(config, "bpam_precode_e2e", False)              # differential precoder in E2E too
         self.dac_bits = getattr(config, "dac_bits", None)                          # DAC resolution (None = ideal)
+        # DAC full-scale = the actual drive peak (True, = the prof) vs the nominal [drive_min, drive_max]
+        # (False, default). For the E2E the DPD output is bounded to the nominal range by its tanh, so
+        # the two coincide; for a FIXED BPAM drive the nominal range is +-Vpi but the peak is far below
+        # it, so False wastes DAC codes -- bpam_classic_rx sets this True.
+        self.dac_fullscale_from_signal = bool(getattr(config, "dac_fullscale_from_signal", False))
         self.output_activation = getattr(config, "dpd_output_activation", "tanh")  # "tanh" | "hardtanh"
         tx_gauss = getattr(config, "tx_gaussian_bw", None)                         # Gaussian cascade after pulse filter
         if tx_gauss:
@@ -221,7 +226,16 @@ class Transmitter(nn.Module):
             drive_wave = F.conv1d(drive_wave.unsqueeze(1), self.tx_gauss,
                                   padding=self.tx_gauss.shape[-1] // 2).squeeze(1)
         if self.dac_bits is not None:                          # DAC: quantize the digital waveform (STE)
-            drive_wave = quantize_ste(drive_wave, self.dac_bits, self.drive_min, self.drive_max)
+            if self.dac_fullscale_from_signal:
+                # Full-scale = the ACTUAL drive peak, like the prof's modulator.m (which rescales the
+                # drive to +-0.5*pi*Vp and sets the DAC rails there). The nominal [drive_min, drive_max]
+                # is +-Vpi, but a fixed BPAM drive peaks well below it (~0.6 Vpi after NRZ shaping), so
+                # a fixed full-scale wastes ~0.7 bit: measured amplitude d' 2.91 -> 3.02 at 6 bit.
+                m = drive_wave.abs().max()
+                lo, hi = -m, m
+            else:
+                lo, hi = self.drive_min, self.drive_max        # DPD output is already bounded to this by tanh
+            drive_wave = quantize_ste(drive_wave, self.dac_bits, lo, hi)
         return drive_wave
 
 
