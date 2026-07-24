@@ -80,30 +80,26 @@ def jlt_chain(width=16, depth=1, adc_bits=None, dac_bits=6, band="cband",
     return cfg
 
 
-def asfand_complex(adc_bits=None, precode=False, dac_bits=6, band="cband", sps=2):
-    """The 'Asfand-comparable' configuration (Luca, mail 2026-07-20): same JLT chain, but the
-    RX-DSP is Asfand's 'complex' NN — three fully-connected hidden layers (32, 64, 16) with a
-    sigmoid output, context window of 5 symbols. The TX-DSP stays ours (Luca: 'or better if
-    you even use TX optimization').
+def asfand_complex(adc_bits=None, precode=False, dac_bits=6, band="cband", sps=2, rx="complex"):
+    """The 'Asfand-comparable' end-to-end configuration (Luca, mail 2026-07-20): the JLT chain with
+    the TX-DSP kept at ours (FC 16) and the RX-DSP set by `rx`:
 
-    sps = samples_per_symbol_sim (internal simulation rate). Default 2: the study of 2026-07-22
-    showed the E2E BER is unchanged from 2 to 16 sps, so 2 (the true system oversampling) is
-    enough. (Classical-BPAM RX-only needs 4 to resolve the T/2 sign cross-term -- handled
-    separately when needed.)
+      rx="complex" (default): the original complex RX -- FC 32-64-16, window 5 symbols. Reproduces
+                              the complex_osnr.ipynb curve (complex_osnr_dario.*).
+      rx="asfand"           : "Asfand's RX" (Stella 2026-07-23) -- single FC 64-128-32 over a
+                              6-symbol window. A/B on the E2E: ~0.2 dB better than "complex",
+                              consistent over OSNR 13-19. Unlike the RX-only case (where RX capacity
+                              and window are neutral), the E2E gains because the RX co-adapts with the
+                              TX-DSP: a more capable RX lets the DPD find a richer signaling it can
+                              still decode. Reproduces bpam_complex.ipynb (bpam_complex.*).
 
-    precode=True applies Marco's proposal (meeting 2026-07-20): the DPD input is the
-    DIFFERENTIALLY ENCODED bit stream while loss and BER stay on the raw bits — the raw phase
-    bit is then carried by the sign TRANSITION between adjacent symbols, which a finite RX
-    window can see (the absolute sign, which needs infinite memory, no longer matters).
+    sps = samples_per_symbol_sim. Default 2 (the E2E BER is flat 2->16 sps, study of 2026-07-22).
+    precode=True applies Marco's differential precoder at the DPD input (loss/BER stay on raw bits).
     """
+    win, widths = (5, [32, 64, 16]) if rx == "complex" else (6, [64, 128, 32])
     cfg = jlt_chain(width=16, depth=1, adc_bits=adc_bits, dac_bits=dac_bits, band=band,
-                    rx_window_symbols=6)
-    cfg.ffe_hidden_widths = [64, 128, 32]     # "Asfand's RX" (Stella 2026-07-23): single NN 64-128-32 over
-                                              # a 6-symbol window. A/B on the E2E: ~0.2 dB better than the
-                                              # earlier 32-64-16/window-5, consistent 13-19 dB. Unlike the
-                                              # RX-only case (where RX capacity is neutral), the E2E gains
-                                              # because the RX co-adapts with the TX-DSP -- a more capable RX
-                                              # lets the DPD discover a richer signaling it can still decode.
+                    rx_window_symbols=win)
+    cfg.ffe_hidden_widths = widths
     cfg.bpam_precode_e2e = bool(precode)
     cfg.samples_per_symbol_sim = sps
     cfg._compute_derived()
