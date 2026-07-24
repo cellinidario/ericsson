@@ -97,8 +97,13 @@ def asfand_complex(adc_bits=None, precode=False, dac_bits=6, band="cband", sps=2
     window can see (the absolute sign, which needs infinite memory, no longer matters).
     """
     cfg = jlt_chain(width=16, depth=1, adc_bits=adc_bits, dac_bits=dac_bits, band=band,
-                    rx_window_symbols=5)
-    cfg.ffe_hidden_widths = [32, 64, 16]
+                    rx_window_symbols=6)
+    cfg.ffe_hidden_widths = [64, 128, 32]     # "Asfand's RX" (Stella 2026-07-23): single NN 64-128-32 over
+                                              # a 6-symbol window. A/B on the E2E: ~0.2 dB better than the
+                                              # earlier 32-64-16/window-5, consistent 13-19 dB. Unlike the
+                                              # RX-only case (where RX capacity is neutral), the E2E gains
+                                              # because the RX co-adapts with the TX-DSP -- a more capable RX
+                                              # lets the DPD discover a richer signaling it can still decode.
     cfg.bpam_precode_e2e = bool(precode)
     cfg.samples_per_symbol_sim = sps
     cfg._compute_derived()
