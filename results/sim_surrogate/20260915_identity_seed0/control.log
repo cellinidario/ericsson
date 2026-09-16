@@ -1,0 +1,11 @@
+=== training (equalizer=end-to-end) — symbol CE + per-bit BCE ===
+  step    0  ebn0 14.0  ce 2.08131599  gap-spread 0.760  BER 0.4969478548
+  step 12500  ebn0 14.0  ce 0.01243499  gap-spread 0.579  BER 0.0017089844
+  step 25000  ebn0 14.0  ce 0.00563175  gap-spread 0.684  BER 0.0011596680
+  step 37500  ebn0 14.0  ce 0.00476052  gap-spread 0.605  BER 0.0006103516
+  step 50000  ebn0 14.0  ce 0.00736301  gap-spread 0.480  BER 0.0010375977
+  step 62500  ebn0 14.0  ce 0.00561178  gap-spread 0.888  BER 0.0006103516
+  step 75000  ebn0 14.0  ce 0.00393253  gap-spread 0.745  BER 0.0003662109
+  step 87500  ebn0 14.0  ce 0.00223094  gap-spread 0.651  BER 0.0004272461
+  step 99999  ebn0 14.0  ce 0.00478086  gap-spread 0.561  BER 0.0006713867
+COMPLETED control: C:\Users\celli\Documents\MATLAB\MLforCPO2\results\sim_surrogate\20260915_identity_seed0\e2e_control_100000.pt

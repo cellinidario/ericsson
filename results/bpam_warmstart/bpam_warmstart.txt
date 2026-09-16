@@ -1,0 +1,22 @@
+# End-to-end autoencoder, C-band 10.238 km, MZM ER 30 dB, TX 20 GHz rect, WSS optical filter,
+# RX 10 GHz Gaussian, N_DAC = 6, 2 samples/symbol. RX-DSP = fully connected 64-128-32 with
+# sigmoid output, context window 6 symbols (12 samples); TX-DSP = fully connected 16.
+# Initialized at the classical transceiver: supervised pre-training of the TX-DSP on
+# the standard BPAM constellation and of the RX-DSP on that transmitter, then
+# UNCONSTRAINED end-to-end fine-tuning. Differential precoder ON: in direct detection
+# the absolute sign is unobservable, only its changes are.
+# OSNR = Eb/N0 + 2.05 dB (signal 1 pol, ASE 2 pol, Bref 12.5 GHz).
+
+# columns:
+#       OSNR[dB]          E2E_adc8          E2E_adc6          E2E_adc5      BPAM_AE_adc8      BPAM_AE_adc6      BPAM_AE_adc5
+
+   11.00        2.7413e-02        2.9873e-02        3.3885e-02        7.0894e-02        7.3482e-02        8.1176e-02
+   12.00        1.4889e-02        1.6632e-02        2.0744e-02        4.9814e-02        5.2712e-02        6.0561e-02
+   13.00        7.1554e-03        8.3329e-03        1.0295e-02        3.3224e-02        3.5214e-02        4.2778e-02
+   14.00        3.0175e-03        3.5715e-03        4.7602e-03        2.0533e-02        2.2219e-02        2.8404e-02
+   15.00        1.0819e-03        1.3723e-03        1.8994e-03        1.1501e-02        1.2996e-02        1.7755e-02
+   16.00        3.2264e-04        4.5001e-04        6.8002e-04        5.8219e-03        6.7045e-03        1.0346e-02
+   17.00        7.9313e-05        1.2828e-04        2.1731e-04        2.6286e-03        3.1934e-03        5.7110e-03
+   18.00        1.6219e-05        3.0375e-05        5.9938e-05        1.0134e-03        1.3405e-03        2.9853e-03
+   19.00        3.2188e-06        7.1876e-06        1.6531e-05        3.3408e-04        4.7231e-04        1.4391e-03
+   20.00        5.9375e-07        1.0000e-06        3.7188e-06        8.8978e-05        1.4404e-04        7.0014e-04

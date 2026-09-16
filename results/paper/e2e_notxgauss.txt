@@ -1,0 +1,22 @@
+# config txgauss | BER at OSNR 11..20  (E2E, seed0, 100k, train@EbN0 14, N_ADC=6)
+# jlt_chain = bpam_simple (W16 D1) ; asfand = bpam_complex (RX 32-64-16)
+asfand   on  3.9587e-02 2.2321e-02 1.1417e-02 5.0585e-03 1.9724e-03 6.4652e-04 1.9066e-04 4.6813e-05 1.0125e-05 1.9063e-06
+asfand   off 3.7578e-02 2.1008e-02 1.0490e-02 4.5896e-03 1.7624e-03 5.8702e-04 1.6694e-04 4.3469e-05 1.1063e-05 2.5000e-06
+jlt      on  5.0666e-02 3.2907e-02 1.9938e-02 1.1337e-02 5.8443e-03 2.7706e-03 1.2017e-03 4.6638e-04 1.6325e-04 5.2594e-05
+jlt      off 5.1626e-02 3.2869e-02 1.9299e-02 1.0365e-02 5.1742e-03 2.3717e-03 9.7923e-04 3.7225e-04 1.3963e-04 4.9375e-05
+#
+# ANALISI (23/7). Sanity: asfand txgauss=on @17 = 1.91e-4 riproduce complex_osnr_dario.txt
+# (1.89e-4) -> il driver combacia col notebook.
+# Guadagno togliendo il gaussiano TX (shift orizzontale medio, zona affidabile OSNR 13-18):
+#   asfand (bpam_complex): +0.10 dB    jlt (bpam_simple): +0.17 dB
+# Piccolo, perche' il gaussiano sta a VALLE del DPD (transmitter.py:216) e il DPD allenato
+# pre-enfatizza per contrastarlo. Confronto: nel caso CLASSICO (TX fisso) lo stesso gaussiano
+# costava 2.16x (~0.9 dB sul bit di fase) perche' non c'e' un TX-DSP che compensi.
+#
+# IMPLICAZIONE PER IL PAPER: il gaussiano TX danneggia la baseline BPAM+AE (equalizzatore lineare,
+# TX fisso, ~0.9 dB) molto piu' dell'E2E (~0.1 dB). Quindi parte del guadagno E2E sulla baseline e'
+# il DPD che compensa un limite di banda al TX che azzoppa la baseline lineare. Togliendolo da
+# entrambi (confronto pulito con Stella/Li), il guadagno headline si riduce (~20x -> ~11x @17).
+# DECISIONE APERTA COL GRUPPO: il gaussiano 10 GHz al TX e' un vincolo HW reale (banda DAC/driver)
+# o una scelta di modeling? Reale -> tenerlo (storia "il TX-DSP assorbe il limite di banda").
+# Arbitrario -> toglierlo da tutte le curve.

@@ -1,0 +1,18 @@
+# End-to-end autoencoder, C-band 10.238 km, MZM ER 25 dB, TX 20 GHz rect, WSS optical filter,
+# RX 10 GHz Gaussian, N_DAC = 6, 2 samples/symbol. RX-DSP = fully connected 32-64-16 with
+# sigmoid output, context window 5 symbols (10 samples); TX-DSP = fully connected 16.
+# OSNR = Eb/N0 + 2.05 dB (signal 1 pol, ASE 2 pol, Bref 12.5 GHz).
+
+# columns:
+# OSNR[dB]          E2E_adc8          E2E_adc6          E2E_adc5      BPAM_AE_adc8      BPAM_AE_adc6      BPAM_AE_adc5
+
+   11.00        4.0436e-02        4.3911e-02        4.9366e-02        8.0167e-02        8.2272e-02        8.8983e-02
+   12.00        2.3093e-02        2.5505e-02        3.0419e-02        5.7175e-02        5.9696e-02        6.6429e-02
+   13.00        1.1604e-02        1.3052e-02        1.6984e-02        3.8721e-02        4.0344e-02        4.6556e-02
+   14.00        5.1525e-03        5.9451e-03        8.6890e-03        2.4474e-02        2.5716e-02        3.1369e-02
+   15.00        1.9337e-03        2.2963e-03        3.9495e-03        1.3976e-02        1.5469e-02        1.9680e-02
+   16.00        5.8127e-04        7.2865e-04        1.5055e-03        7.3404e-03        8.2374e-03        1.1763e-02
+   17.00        1.5384e-04        1.9303e-04        5.6044e-04        3.4391e-03        4.1026e-03        6.7434e-03
+   18.00        3.1219e-05        3.7219e-05        1.6131e-04        1.4008e-03        1.8353e-03        3.6383e-03
+   19.00        5.7500e-06        6.5001e-06        4.3688e-05        4.9043e-04        7.1526e-04        1.8761e-03
+   20.00        8.1251e-07        9.6876e-07        1.0250e-05        1.4036e-04        2.5239e-04        9.5530e-04

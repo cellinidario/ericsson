@@ -1,0 +1,151 @@
+{
+  "device": "cuda",
+  "training_performed": false,
+  "runs": [
+    {
+      "adc_bits": 8,
+      "checkpoint": "results\\bpam_surrogate\\checkpoints\\e2e_adc8_4d30585b1605e2d2.pt",
+      "checkpoint_sha256": "2c88507f53c1d2a75bda74d7ccec062f35b17a045d7fcc809a0bbad26b1743be",
+      "table_shape": [
+        1024,
+        2
+      ],
+      "context_max_error_volt": 9.5367431640625e-07,
+      "paired_tests": [
+        {
+          "osnr_db": 13,
+          "bits": 2088960,
+          "errors_nn": 23018,
+          "errors_lut": 23018,
+          "decision_mismatches": 0,
+          "ber_nn": 0.011018880208333333,
+          "ber_lut": 0.011018880208333333
+        },
+        {
+          "osnr_db": 15,
+          "bits": 2088960,
+          "errors_nn": 3909,
+          "errors_lut": 3909,
+          "decision_mismatches": 0,
+          "ber_nn": 0.0018712660845588236,
+          "ber_lut": 0.0018712660845588236
+        },
+        {
+          "osnr_db": 17,
+          "bits": 2088960,
+          "errors_nn": 366,
+          "errors_lut": 366,
+          "decision_mismatches": 0,
+          "ber_nn": 0.00017520680147058824,
+          "ber_lut": 0.00017520680147058824
+        },
+        {
+          "osnr_db": 19,
+          "bits": 2088960,
+          "errors_nn": 25,
+          "errors_lut": 25,
+          "decision_mismatches": 0,
+          "ber_nn": 1.1967677696078431e-05,
+          "ber_lut": 1.1967677696078431e-05
+        }
+      ]
+    },
+    {
+      "adc_bits": 6,
+      "checkpoint": "results\\bpam_surrogate\\checkpoints\\e2e_adc6_c60a3c4d8a92cbb9.pt",
+      "checkpoint_sha256": "07b6c6ac3c3a6be8b9851793308cf78fb03072a56885ac6ceb0a2af35b7eadb7",
+      "table_shape": [
+        1024,
+        2
+      ],
+      "context_max_error_volt": 1.9073486328125e-06,
+      "paired_tests": [
+        {
+          "osnr_db": 13,
+          "bits": 2088960,
+          "errors_nn": 24350,
+          "errors_lut": 24350,
+          "decision_mismatches": 0,
+          "ber_nn": 0.011656518075980392,
+          "ber_lut": 0.011656518075980392
+        },
+        {
+          "osnr_db": 15,
+          "bits": 2088960,
+          "errors_nn": 4430,
+          "errors_lut": 4430,
+          "decision_mismatches": 0,
+          "ber_nn": 0.002120672487745098,
+          "ber_lut": 0.002120672487745098
+        },
+        {
+          "osnr_db": 17,
+          "bits": 2088960,
+          "errors_nn": 410,
+          "errors_lut": 410,
+          "decision_mismatches": 0,
+          "ber_nn": 0.00019626991421568628,
+          "ber_lut": 0.00019626991421568628
+        },
+        {
+          "osnr_db": 19,
+          "bits": 2088960,
+          "errors_nn": 37,
+          "errors_lut": 37,
+          "decision_mismatches": 0,
+          "ber_nn": 1.771216299019608e-05,
+          "ber_lut": 1.771216299019608e-05
+        }
+      ]
+    },
+    {
+      "adc_bits": 5,
+      "checkpoint": "results\\bpam_surrogate\\checkpoints\\e2e_adc5_67ff94c0040a9cc5.pt",
+      "checkpoint_sha256": "5521dd18ea7f9379269bd0715c192d956f0d698af482ee6302d282a70bcd1fdb",
+      "table_shape": [
+        1024,
+        2
+      ],
+      "context_max_error_volt": 1.9073486328125e-06,
+      "paired_tests": [
+        {
+          "osnr_db": 13,
+          "bits": 2088960,
+          "errors_nn": 27476,
+          "errors_lut": 27476,
+          "decision_mismatches": 0,
+          "ber_nn": 0.01315295649509804,
+          "ber_lut": 0.01315295649509804
+        },
+        {
+          "osnr_db": 15,
+          "bits": 2088960,
+          "errors_nn": 5363,
+          "errors_lut": 5363,
+          "decision_mismatches": 0,
+          "ber_nn": 0.002567306219362745,
+          "ber_lut": 0.002567306219362745
+        },
+        {
+          "osnr_db": 17,
+          "bits": 2088960,
+          "errors_nn": 646,
+          "errors_lut": 646,
+          "decision_mismatches": 0,
+          "ber_nn": 0.00030924479166666665,
+          "ber_lut": 0.00030924479166666665
+        },
+        {
+          "osnr_db": 19,
+          "bits": 2088960,
+          "errors_nn": 36,
+          "errors_lut": 36,
+          "decision_mismatches": 0,
+          "ber_nn": 1.723345588235294e-05,
+          "ber_lut": 1.723345588235294e-05
+        }
+      ]
+    }
+  ],
+  "passed": true
+}

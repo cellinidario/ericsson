@@ -1,0 +1,3 @@
+# osnr  variant  BER  ber_amp  ber_phase   (RX-only, win11 32-64-16, Vpeak0.6, N_ADC=6, 100k steps)
+ 17.0  linear     6.1906e-03  3.4641e-03  8.8031e-03
+ 17.0  cosine     4.1958e-03  2.7688e-03  5.5523e-03

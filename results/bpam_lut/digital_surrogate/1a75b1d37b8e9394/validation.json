@@ -1,0 +1,331 @@
+{
+  "signature": "1a75b1d37b8e93949387375766e20b503f0b79003f526b12a5dbd102c8126e6e",
+  "provenance": {
+    "config": {
+      "wavelength_band": "cband",
+      "noise_regime": "ase",
+      "modulator": "mzm",
+      "tx_filter": "freq-rect",
+      "rx_filter": "freq-rect",
+      "equalizer": "end-to-end",
+      "symbol_rate": 20000000000.0,
+      "bits_per_symbol": 2,
+      "modulation_order": 4,
+      "modulation_format": "bpam-4",
+      "samples_per_symbol_sim": 2,
+      "samples_per_symbol_rx": 2,
+      "bpam_curriculum": false,
+      "curr_lowsnr_ebn0": 10.0,
+      "curr_lowsnr_steps": 20000,
+      "curr_rxonly_steps": 20000,
+      "bpam_warm_start": false,
+      "warm_pretrain_steps": 8000,
+      "warm_rxonly_steps": 15000,
+      "warm_rx_checkpoint": null,
+      "tx_init_gain": 1.0,
+      "bpam_loss": "ce+bce",
+      "bpam_classic_drive_swing": null,
+      "bpam_diff_target": "raw",
+      "bpam_precode_e2e": false,
+      "tx_waveform_freedom": true,
+      "rrc_rolloff": 0.85,
+      "rrc_span_symbols": 16,
+      "rect_filter_bandwidth": 20000000000.0,
+      "num_mzm_segments": 1,
+      "mzm_vpi_volt": 5.0,
+      "mzm_extinction_ratio_db": 30.0,
+      "mzm_bias_volt": null,
+      "drive_swing_fraction": 1.0,
+      "dpd_output_activation": "tanh",
+      "mzm_chirp_alpha": 0.0,
+      "mzm_bandwidth": 30000000000.0,
+      "segment_bandwidth_scales": [
+        1.0
+      ],
+      "fiber_length_km": 10.238,
+      "wavelength_nm": 1550.0,
+      "fiber_beta2_ps2_per_km": -21.7,
+      "fiber_loss_db_per_km": 0.2,
+      "optical_filter_bandwidth": 37000000000.0,
+      "optical_filter_type": "auto",
+      "wss_bandpass_factor": 1.53,
+      "wss_otf_bandwidth": 18000000000.0,
+      "optical_filter_order": 4,
+      "photodiode_bandwidth": 25000000000.0,
+      "tx_gaussian_bw": null,
+      "rx_gaussian_bw": 10000000000.0,
+      "dac_bits": 6,
+      "adc_bits": 6,
+      "dpd_memory_symbols": 5,
+      "dpd_hidden_width": 16,
+      "dpd_hidden_layers": 1,
+      "dpd_hidden_widths": null,
+      "tx_values_per_symbol": null,
+      "drive_min_volt": -5.0,
+      "drive_max_volt": 5.0,
+      "ffe_memory_symbols": 6,
+      "ffe_hidden_width": 16,
+      "rx_dual_network": false,
+      "rx_phase_window_offset": 1,
+      "ffe_hidden_widths": [
+        64,
+        128,
+        32
+      ],
+      "rx_bit_head": true,
+      "ffe_hidden_layers": 1,
+      "ffe_nonlinear": true,
+      "edge_guard_symbols": 64,
+      "minibatch_symbols": 8192,
+      "learning_rate": 0.001,
+      "lr_schedule": null,
+      "bit_rate": 40000000000.0,
+      "sim_sample_rate": 40000000000.0,
+      "rx_sample_rate": 40000000000.0,
+      "sim_nyquist": 20000000000.0,
+      "extinction_ratio_linear": 1000.0,
+      "fiber_loss_linear": 0.6240796193491469
+    },
+    "recipe": {
+      "steps": 5000,
+      "learning_rate": 0.001,
+      "train_blocks": 16,
+      "validation_blocks": 4,
+      "test_blocks": 4,
+      "block_samples": 8192,
+      "guard": 256,
+      "seed": 401,
+      "version": 1
+    },
+    "channel_source_sha256": "07934158bac3377e018e2874bfd434d00475d6a45bb376d2badddbf56e16cc51"
+  },
+  "best_step": 4900,
+  "test_nmse": 1.5954971099415673e-12,
+  "paired_noise_nmse": 1.52557400142104e-12,
+  "gradients": [
+    {
+      "cosine": 1.0,
+      "relative_l2": 1.2271049172341009e-06,
+      "input_gradient_norm": 10.884000778198242
+    },
+    {
+      "cosine": 1.0,
+      "relative_l2": 1.2164817917437176e-06,
+      "input_gradient_norm": 11.006416320800781
+    },
+    {
+      "cosine": 1.0,
+      "relative_l2": 1.1941575621676748e-06,
+      "input_gradient_norm": 11.046351432800293
+    },
+    {
+      "cosine": 0.9999999403953552,
+      "relative_l2": 1.166447191280895e-06,
+      "input_gradient_norm": 11.132204055786133
+    }
+  ],
+  "gate_passed": true,
+  "history": [
+    {
+      "step": 100,
+      "validation_nmse": 0.35980451108865824
+    },
+    {
+      "step": 200,
+      "validation_nmse": 0.1619470334841117
+    },
+    {
+      "step": 300,
+      "validation_nmse": 0.06839754815309511
+    },
+    {
+      "step": 400,
+      "validation_nmse": 0.02864414496512331
+    },
+    {
+      "step": 500,
+      "validation_nmse": 0.01136649123080471
+    },
+    {
+      "step": 600,
+      "validation_nmse": 0.004069130337355919
+    },
+    {
+      "step": 700,
+      "validation_nmse": 0.0012676172962521543
+    },
+    {
+      "step": 800,
+      "validation_nmse": 0.00033857744735571926
+    },
+    {
+      "step": 900,
+      "validation_nmse": 7.63675382407412e-05
+    },
+    {
+      "step": 1000,
+      "validation_nmse": 1.4672731707334115e-05
+    },
+    {
+      "step": 1100,
+      "validation_nmse": 2.3985151081070575e-06
+    },
+    {
+      "step": 1200,
+      "validation_nmse": 3.3833263650682504e-07
+    },
+    {
+      "step": 1300,
+      "validation_nmse": 3.941069062185701e-08
+    },
+    {
+      "step": 1400,
+      "validation_nmse": 3.912243203332014e-09
+    },
+    {
+      "step": 1500,
+      "validation_nmse": 3.314515070862149e-10
+    },
+    {
+      "step": 1600,
+      "validation_nmse": 2.9287954355334733e-11
+    },
+    {
+      "step": 1700,
+      "validation_nmse": 2.776046675810185e-11
+    },
+    {
+      "step": 1800,
+      "validation_nmse": 2.6373754653563235e-11
+    },
+    {
+      "step": 1900,
+      "validation_nmse": 2.3359896168952653e-11
+    },
+    {
+      "step": 2000,
+      "validation_nmse": 2.0762623012793214e-11
+    },
+    {
+      "step": 2100,
+      "validation_nmse": 1.8561107737667612e-11
+    },
+    {
+      "step": 2200,
+      "validation_nmse": 1.7446102768852105e-11
+    },
+    {
+      "step": 2300,
+      "validation_nmse": 1.5411601183906618e-11
+    },
+    {
+      "step": 2400,
+      "validation_nmse": 1.4117268559965842e-11
+    },
+    {
+      "step": 2500,
+      "validation_nmse": 1.2319088153263466e-11
+    },
+    {
+      "step": 2600,
+      "validation_nmse": 1.1343930772323804e-11
+    },
+    {
+      "step": 2700,
+      "validation_nmse": 1.0470256577590855e-11
+    },
+    {
+      "step": 2800,
+      "validation_nmse": 8.798970499737473e-12
+    },
+    {
+      "step": 2900,
+      "validation_nmse": 7.688049082451705e-12
+    },
+    {
+      "step": 3000,
+      "validation_nmse": 7.109182061500339e-12
+    },
+    {
+      "step": 3100,
+      "validation_nmse": 6.496564722234616e-12
+    },
+    {
+      "step": 3200,
+      "validation_nmse": 5.800724361949027e-12
+    },
+    {
+      "step": 3300,
+      "validation_nmse": 5.313998368855864e-12
+    },
+    {
+      "step": 3400,
+      "validation_nmse": 5.130926700862467e-12
+    },
+    {
+      "step": 3500,
+      "validation_nmse": 4.6357941718001e-12
+    },
+    {
+      "step": 3600,
+      "validation_nmse": 4.049828340427395e-12
+    },
+    {
+      "step": 3700,
+      "validation_nmse": 3.695405762684791e-12
+    },
+    {
+      "step": 3800,
+      "validation_nmse": 3.718947536100648e-12
+    },
+    {
+      "step": 3900,
+      "validation_nmse": 3.1778594676104386e-12
+    },
+    {
+      "step": 4000,
+      "validation_nmse": 3.175847639348075e-12
+    },
+    {
+      "step": 4100,
+      "validation_nmse": 2.789557412265188e-12
+    },
+    {
+      "step": 4200,
+      "validation_nmse": 2.425766662394623e-12
+    },
+    {
+      "step": 4300,
+      "validation_nmse": 2.3902503595240146e-12
+    },
+    {
+      "step": 4400,
+      "validation_nmse": 2.027951925038163e-12
+    },
+    {
+      "step": 4500,
+      "validation_nmse": 1.992761632854642e-12
+    },
+    {
+      "step": 4600,
+      "validation_nmse": 2.0682360711303132e-12
+    },
+    {
+      "step": 4700,
+      "validation_nmse": 1.8678928536016176e-12
+    },
+    {
+      "step": 4800,
+      "validation_nmse": 1.9505010587200423e-12
+    },
+    {
+      "step": 4900,
+      "validation_nmse": 1.5636497190978609e-12
+    },
+    {
+      "step": 5000,
+      "validation_nmse": 1.5658936830255783e-12
+    }
+  ],
+  "checkpoint_sha256": "6f99f057000028b47843a7b0f01a787b2f886615475ee7a0e6e8ca383c3244fd"
+}

@@ -1,0 +1,15 @@
+# End-to-end BPAM-4 (this work), W=16 D=1 seed0, 100000 steps, C-band 10.238 km,
+# MZM ER 30 dB, TX 20 GHz rect, RX 10 GHz Gaussian, N_DAC=6.
+# Native OSNR axis (each network measured directly at these points).
+# OSNR = Eb/N0 + 2.05 dB (signal 1 pol, ASE 2 pol, Bref 12.5 GHz).
+# col1=OSNR[dB]  col2=ideal ADC  col3=N_ADC 8  col4=N_ADC 6  col5=N_ADC 5
+   11.00  5.3242e-02  5.3351e-02  5.4090e-02  6.2410e-02
+   12.00  3.3844e-02  3.4159e-02  3.4136e-02  4.3354e-02
+   13.00  1.9688e-02  1.9879e-02  2.0242e-02  2.7076e-02
+   14.00  1.0552e-02  1.0639e-02  1.0861e-02  1.5717e-02
+   15.00  5.0247e-03  5.2582e-03  5.3215e-03  8.6690e-03
+   16.00  2.1656e-03  2.2554e-03  2.3662e-03  4.4445e-03
+   17.00  8.2957e-04  8.7148e-04  9.3323e-04  2.2446e-03
+   18.00  2.8278e-04  3.0685e-04  3.2747e-04  1.0148e-03
+   19.00  8.4469e-05  9.5751e-05  1.0209e-04  4.6503e-04
+   20.00  2.3188e-05  2.5563e-05  2.8656e-05  1.9256e-04

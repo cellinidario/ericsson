@@ -1,0 +1,209 @@
+{
+  "source": "results\\bpam_surrogate\\checkpoints\\e2e_adc6_c60a3c4d8a92cbb9.pt",
+  "source_sha256": "07b6c6ac3c3a6be8b9851793308cf78fb03072a56885ac6ceb0a2af35b7eadb7",
+  "steps_per_arm": 5000,
+  "seed": 20260916,
+  "train_ebn0_db": 14.0,
+  "learning_rate": 0.001,
+  "loss": "ce+bce",
+  "lut_voltage_constraint": [
+    -5.0,
+    5.0
+  ],
+  "baseline": [
+    {
+      "osnr_db": 13,
+      "errors": 48931,
+      "bits": 4177920,
+      "ber": 0.011711808746936274
+    },
+    {
+      "osnr_db": 15,
+      "errors": 8795,
+      "bits": 4177920,
+      "ber": 0.002105114506740196
+    },
+    {
+      "osnr_db": 17,
+      "errors": 875,
+      "bits": 4177920,
+      "ber": 0.00020943435968137254
+    },
+    {
+      "osnr_db": 19,
+      "errors": 40,
+      "bits": 4177920,
+      "ber": 9.574142156862745e-06
+    }
+  ],
+  "arms": {
+    "nn_control": {
+      "history": [
+        {
+          "step": 1,
+          "loss": 0.006159193813800812
+        },
+        {
+          "step": 1001,
+          "loss": 0.003385749878361821
+        },
+        {
+          "step": 2001,
+          "loss": 0.0027137992437928915
+        },
+        {
+          "step": 3001,
+          "loss": 0.0022508164402097464
+        },
+        {
+          "step": 4001,
+          "loss": 0.004109705798327923
+        },
+        {
+          "step": 5000,
+          "loss": 0.004981174133718014
+        }
+      ],
+      "tx_parameter_change_l2": 0.2123177210841073,
+      "rx_parameter_change_l2": 4.000423617833618,
+      "digital_surrogate_unchanged": true,
+      "digital_surrogate": [
+        {
+          "osnr_db": 13,
+          "errors": 47394,
+          "bits": 4177920,
+          "ber": 0.011343922334558823
+        },
+        {
+          "osnr_db": 15,
+          "errors": 7573,
+          "bits": 4177920,
+          "ber": 0.0018126244638480393
+        },
+        {
+          "osnr_db": 17,
+          "errors": 594,
+          "bits": 4177920,
+          "ber": 0.00014217601102941177
+        },
+        {
+          "osnr_db": 19,
+          "errors": 18,
+          "bits": 4177920,
+          "ber": 4.308363970588235e-06
+        }
+      ],
+      "analytical_channel": [
+        {
+          "osnr_db": 13,
+          "errors": 47392,
+          "bits": 4177920,
+          "ber": 0.01134344362745098
+        },
+        {
+          "osnr_db": 15,
+          "errors": 7573,
+          "bits": 4177920,
+          "ber": 0.0018126244638480393
+        },
+        {
+          "osnr_db": 17,
+          "errors": 594,
+          "bits": 4177920,
+          "ber": 0.00014217601102941177
+        },
+        {
+          "osnr_db": 19,
+          "errors": 18,
+          "bits": 4177920,
+          "ber": 4.308363970588235e-06
+        }
+      ]
+    },
+    "embedding": {
+      "history": [
+        {
+          "step": 1,
+          "loss": 0.006159193813800812
+        },
+        {
+          "step": 1001,
+          "loss": 0.0039615510031580925
+        },
+        {
+          "step": 2001,
+          "loss": 0.0037220262456685305
+        },
+        {
+          "step": 3001,
+          "loss": 0.0028612653259187937
+        },
+        {
+          "step": 4001,
+          "loss": 0.003495721844956279
+        },
+        {
+          "step": 5000,
+          "loss": 0.004403419326990843
+        }
+      ],
+      "tx_parameter_change_l2": 4.704786849833706,
+      "rx_parameter_change_l2": 4.334691443906454,
+      "digital_surrogate_unchanged": true,
+      "digital_surrogate": [
+        {
+          "osnr_db": 13,
+          "errors": 45131,
+          "bits": 4177920,
+          "ber": 0.010802265242034313
+        },
+        {
+          "osnr_db": 15,
+          "errors": 6843,
+          "bits": 4177920,
+          "ber": 0.0016378963694852942
+        },
+        {
+          "osnr_db": 17,
+          "errors": 502,
+          "bits": 4177920,
+          "ber": 0.00012015548406862744
+        },
+        {
+          "osnr_db": 19,
+          "errors": 9,
+          "bits": 4177920,
+          "ber": 2.1541819852941176e-06
+        }
+      ],
+      "analytical_channel": [
+        {
+          "osnr_db": 13,
+          "errors": 45130,
+          "bits": 4177920,
+          "ber": 0.010802025888480392
+        },
+        {
+          "osnr_db": 15,
+          "errors": 6843,
+          "bits": 4177920,
+          "ber": 0.0016378963694852942
+        },
+        {
+          "osnr_db": 17,
+          "errors": 502,
+          "bits": 4177920,
+          "ber": 0.00012015548406862744
+        },
+        {
+          "osnr_db": 19,
+          "errors": 9,
+          "bits": 4177920,
+          "ber": 2.1541819852941176e-06
+        }
+      ],
+      "changed_rows": 1024
+    }
+  },
+  "completed": true
+}

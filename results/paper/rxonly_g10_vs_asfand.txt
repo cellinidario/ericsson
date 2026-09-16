@@ -1,0 +1,7 @@
+# RX-only, catena del prof con TX gaussiano 10 GHz (ER30, Vpeak 0.6, N_DAC6)
+# nostra RX-NN (FC 32-64-16, finestra 11 campioni) vs NN di Asfand (letta dalla figura)
+# OSNR  noi_adc8  noi_adc6  noi_adc5  asf_adc8  asf_adc6  asf_adc5
+    13  3.0948e-02  3.2833e-02  3.8433e-02  2.2000e-02  2.2500e-02  2.4000e-02
+    15  9.3317e-03  1.0479e-02  1.4269e-02  4.6000e-03  4.8000e-03  5.5000e-03
+    17  1.7017e-03  2.1082e-03  3.8159e-03  7.0000e-04  8.0000e-04  1.2000e-03
+    19  1.6272e-04  2.4200e-04  6.6221e-04  8.0000e-05  1.0000e-04  1.6000e-04

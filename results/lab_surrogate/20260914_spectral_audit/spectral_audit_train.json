@@ -1,0 +1,1602 @@
+[
+  {
+    "record": 82,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0016443265910789135
+      },
+      {
+        "cycles_per_sample": 7.62939453125e-06,
+        "frequency_GHz_assuming_80GSa": 0.0006103515625,
+        "variance_fraction": 0.0006233395302345749
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.00046190722506567086
+      }
+    ]
+  },
+  {
+    "record": 36,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014869231651643497
+      },
+      {
+        "cycles_per_sample": 0.0078125,
+        "frequency_GHz_assuming_80GSa": 0.625,
+        "variance_fraction": 0.00046959195450349826
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.00046566387949894064
+      }
+    ]
+  },
+  {
+    "record": 20,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.3447918480330474
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.2946776093485143
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.005239162010538545
+      }
+    ]
+  },
+  {
+    "record": 5,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001450780087055443
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.00045435149226160314
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.00036728177924063367
+      }
+    ]
+  },
+  {
+    "record": 93,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0016695638927506872
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0005783230574917967
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.0004815776647581569
+      }
+    ]
+  },
+  {
+    "record": 16,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001476483741470767
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0008474713711430769
+      },
+      {
+        "cycles_per_sample": 0.01171875,
+        "frequency_GHz_assuming_80GSa": 0.9375,
+        "variance_fraction": 0.0005050228273546309
+      }
+    ]
+  },
+  {
+    "record": 94,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015682079191575331
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0003960038950270215
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.00039366947228172396
+      }
+    ]
+  },
+  {
+    "record": 52,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.3878630661608355
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.20525278601165917
+      },
+      {
+        "cycles_per_sample": 0.234375,
+        "frequency_GHz_assuming_80GSa": 18.75,
+        "variance_fraction": 0.005994241083175074
+      }
+    ]
+  },
+  {
+    "record": 72,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0016932194043523803
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0005199812737836466
+      },
+      {
+        "cycles_per_sample": 0.015625,
+        "frequency_GHz_assuming_80GSa": 1.25,
+        "variance_fraction": 0.0004902708654169477
+      }
+    ]
+  },
+  {
+    "record": 90,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015764926776343866
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0005152772743758757
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.000446208069809287
+      }
+    ]
+  },
+  {
+    "record": 83,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014562552712024846
+      },
+      {
+        "cycles_per_sample": 1.9073486328125e-06,
+        "frequency_GHz_assuming_80GSa": 0.000152587890625,
+        "variance_fraction": 0.0005099573213933596
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.00035187833026225534
+      }
+    ]
+  },
+  {
+    "record": 13,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.422909059806455
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.22391439564416138
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.003543169612310036
+      }
+    ]
+  },
+  {
+    "record": 81,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.42298171588974676
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.22674489081079865
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.0036716739005882657
+      }
+    ]
+  },
+  {
+    "record": 37,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014170988127214618
+      },
+      {
+        "cycles_per_sample": 0.01171875,
+        "frequency_GHz_assuming_80GSa": 0.9375,
+        "variance_fraction": 0.0005956718114568004
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.0005245274070513886
+      }
+    ]
+  },
+  {
+    "record": 11,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015205513265142713
+      },
+      {
+        "cycles_per_sample": 0.01171875,
+        "frequency_GHz_assuming_80GSa": 0.9375,
+        "variance_fraction": 0.000455747681005905
+      },
+      {
+        "cycles_per_sample": 0.0078125,
+        "frequency_GHz_assuming_80GSa": 0.625,
+        "variance_fraction": 0.00039000509399415216
+      }
+    ]
+  },
+  {
+    "record": 10,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.3672919437261432
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.29335555872348734
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.0031461664208886596
+      }
+    ]
+  },
+  {
+    "record": 75,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0013253904362784917
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.000950787275004746
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0005165470190473972
+      }
+    ]
+  },
+  {
+    "record": 8,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001426668541841738
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0006590692861271206
+      },
+      {
+        "cycles_per_sample": 0.0078125,
+        "frequency_GHz_assuming_80GSa": 0.625,
+        "variance_fraction": 0.0006381061604859327
+      }
+    ]
+  },
+  {
+    "record": 27,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.3894347747309215
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.27340860589114424
+      },
+      {
+        "cycles_per_sample": 0.0390625,
+        "frequency_GHz_assuming_80GSa": 3.125,
+        "variance_fraction": 0.002456305932422949
+      }
+    ]
+  },
+  {
+    "record": 9,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015381781214168883
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.0003800373745240023
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0003451427995005772
+      }
+    ]
+  },
+  {
+    "record": 97,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.3901687528329961
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.20250552228215624
+      },
+      {
+        "cycles_per_sample": 0.234375,
+        "frequency_GHz_assuming_80GSa": 18.75,
+        "variance_fraction": 0.005671531448149171
+      }
+    ]
+  },
+  {
+    "record": 23,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001365545577072732
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.00046565302696564544
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0003748504554833802
+      }
+    ]
+  },
+  {
+    "record": 22,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0016174044829989447
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0005964848381144703
+      },
+      {
+        "cycles_per_sample": 0.01171875,
+        "frequency_GHz_assuming_80GSa": 0.9375,
+        "variance_fraction": 0.00043158278344201945
+      }
+    ]
+  },
+  {
+    "record": 19,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.38579718244841343
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.2728941130438168
+      },
+      {
+        "cycles_per_sample": 0.0390625,
+        "frequency_GHz_assuming_80GSa": 3.125,
+        "variance_fraction": 0.003001084006583085
+      }
+    ]
+  },
+  {
+    "record": 50,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.345644919286011
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.2935228620713893
+      },
+      {
+        "cycles_per_sample": 0.234375,
+        "frequency_GHz_assuming_80GSa": 18.75,
+        "variance_fraction": 0.003982517373992497
+      }
+    ]
+  },
+  {
+    "record": 98,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015375597961920016
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0003907101728926132
+      },
+      {
+        "cycles_per_sample": 0.01171875,
+        "frequency_GHz_assuming_80GSa": 0.9375,
+        "variance_fraction": 0.00037272059912001575
+      }
+    ]
+  },
+  {
+    "record": 85,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.3442430781061634
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.31657462054819413
+      },
+      {
+        "cycles_per_sample": 0.234375,
+        "frequency_GHz_assuming_80GSa": 18.75,
+        "variance_fraction": 0.01349028314163518
+      }
+    ]
+  },
+  {
+    "record": 44,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015970339892653488
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0009129644299366892
+      },
+      {
+        "cycles_per_sample": 3.814697265625e-06,
+        "frequency_GHz_assuming_80GSa": 0.00030517578125,
+        "variance_fraction": 0.0005191348415434502
+      }
+    ]
+  },
+  {
+    "record": 71,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.3416417449337894
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.3220639671767359
+      },
+      {
+        "cycles_per_sample": 0.234375,
+        "frequency_GHz_assuming_80GSa": 18.75,
+        "variance_fraction": 0.004373895518957032
+      }
+    ]
+  },
+  {
+    "record": 4,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015352484250041516
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0006378405196494791
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0004679412219586211
+      }
+    ]
+  },
+  {
+    "record": 25,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015391945779991633
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0003158524427775083
+      },
+      {
+        "cycles_per_sample": 0.0625,
+        "frequency_GHz_assuming_80GSa": 5.0,
+        "variance_fraction": 0.0002892685509008893
+      }
+    ]
+  },
+  {
+    "record": 70,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001416669716514282
+      },
+      {
+        "cycles_per_sample": 0.0078125,
+        "frequency_GHz_assuming_80GSa": 0.625,
+        "variance_fraction": 0.00043735669826050326
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.00037958406697062813
+      }
+    ]
+  },
+  {
+    "record": 34,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015104036846609607
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0007055050359875757
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.00047663359260709216
+      }
+    ]
+  },
+  {
+    "record": 39,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014603954546222315
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0009721955292324097
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.00036985162768639004
+      }
+    ]
+  },
+  {
+    "record": 64,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.38976571190765563
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.25557220105590867
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.005431457524431994
+      }
+    ]
+  },
+  {
+    "record": 57,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014962430251667205
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0005494543281054809
+      },
+      {
+        "cycles_per_sample": 0.01171875,
+        "frequency_GHz_assuming_80GSa": 0.9375,
+        "variance_fraction": 0.0003158387003884178
+      }
+    ]
+  },
+  {
+    "record": 65,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.37386478517499694
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.2974648633143408
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.00316606252615679
+      }
+    ]
+  },
+  {
+    "record": 42,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015997240982793244
+      },
+      {
+        "cycles_per_sample": 0.015625,
+        "frequency_GHz_assuming_80GSa": 1.25,
+        "variance_fraction": 0.0004820291676688642
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.00046623189762799537
+      }
+    ]
+  },
+  {
+    "record": 66,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014504046162134528
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.000488675461278545
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.00036940773075174935
+      }
+    ]
+  },
+  {
+    "record": 15,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014289488802528326
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0005427834917221799
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.0004673264786738108
+      }
+    ]
+  },
+  {
+    "record": 30,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.34432870159093454
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.29712557209352725
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.005224327843629856
+      }
+    ]
+  },
+  {
+    "record": 2,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0016084395046116705
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.0004625905994836133
+      },
+      {
+        "cycles_per_sample": 0.01171875,
+        "frequency_GHz_assuming_80GSa": 0.9375,
+        "variance_fraction": 0.00039003107243242306
+      }
+    ]
+  },
+  {
+    "record": 35,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.3690576581022377
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.2993909113785906
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.003265254683616277
+      }
+    ]
+  },
+  {
+    "record": 86,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001274934595597062
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0006900689523712123
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.00036808358308011317
+      }
+    ]
+  },
+  {
+    "record": 43,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014805915549432167
+      },
+      {
+        "cycles_per_sample": 0.01171875,
+        "frequency_GHz_assuming_80GSa": 0.9375,
+        "variance_fraction": 0.00048166277492775873
+      },
+      {
+        "cycles_per_sample": 0.0078125,
+        "frequency_GHz_assuming_80GSa": 0.625,
+        "variance_fraction": 0.00046936011667981457
+      }
+    ]
+  },
+  {
+    "record": 17,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014268005037968367
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0005562008069973141
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0005225787612577327
+      }
+    ]
+  },
+  {
+    "record": 74,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014438389477106689
+      },
+      {
+        "cycles_per_sample": 3.814697265625e-06,
+        "frequency_GHz_assuming_80GSa": 0.00030517578125,
+        "variance_fraction": 0.00044519341900284477
+      },
+      {
+        "cycles_per_sample": 0.0234375,
+        "frequency_GHz_assuming_80GSa": 1.875,
+        "variance_fraction": 0.0003817554111321467
+      }
+    ]
+  },
+  {
+    "record": 28,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014624928142649414
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0004795441524161866
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.0003049584316080505
+      }
+    ]
+  },
+  {
+    "record": 87,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.4300064893102784
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.22343332351446504
+      },
+      {
+        "cycles_per_sample": 0.234375,
+        "frequency_GHz_assuming_80GSa": 18.75,
+        "variance_fraction": 0.003239597228001997
+      }
+    ]
+  },
+  {
+    "record": 18,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0013857568724187238
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.00037810094371713105
+      },
+      {
+        "cycles_per_sample": 0.01953125,
+        "frequency_GHz_assuming_80GSa": 1.5625,
+        "variance_fraction": 0.00036455528107057195
+      }
+    ]
+  },
+  {
+    "record": 80,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.38582590792595983
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.27237565823304605
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.005743813750793728
+      }
+    ]
+  },
+  {
+    "record": 3,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.365837022054936
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.2639199648152254
+      },
+      {
+        "cycles_per_sample": 0.234375,
+        "frequency_GHz_assuming_80GSa": 18.75,
+        "variance_fraction": 0.008652146405195403
+      }
+    ]
+  },
+  {
+    "record": 1,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001487651460503105
+      },
+      {
+        "cycles_per_sample": 7.62939453125e-06,
+        "frequency_GHz_assuming_80GSa": 0.0006103515625,
+        "variance_fraction": 0.0005961627493494005
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.00048093742865307985
+      }
+    ]
+  },
+  {
+    "record": 55,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015513992693527285
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0006941006515557527
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0005105995715534922
+      }
+    ]
+  },
+  {
+    "record": 53,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.37149369931181275
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.2965232701575453
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.003136572104153678
+      }
+    ]
+  },
+  {
+    "record": 24,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015928969317819226
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0005318398356793828
+      },
+      {
+        "cycles_per_sample": 0.01171875,
+        "frequency_GHz_assuming_80GSa": 0.9375,
+        "variance_fraction": 0.0004326668698160538
+      }
+    ]
+  },
+  {
+    "record": 68,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001499635634473204
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0005390905846927113
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.00041216785076709524
+      }
+    ]
+  },
+  {
+    "record": 21,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001618664102825917
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0005330933096722786
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.0003660953982538698
+      }
+    ]
+  },
+  {
+    "record": 47,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.36158004435070307
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.2614353059924871
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.005622522603424475
+      }
+    ]
+  },
+  {
+    "record": 0,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001539246258842515
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.00044609613328697607
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0003680701458027905
+      }
+    ]
+  },
+  {
+    "record": 60,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.37008705430717725
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.2975365859666315
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.0034860243524777704
+      }
+    ]
+  },
+  {
+    "record": 6,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0013625384962701215
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0006395708891046627
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0004918215141424757
+      }
+    ]
+  },
+  {
+    "record": 62,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014706821156358102
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0004795902002082467
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.0004460287174789127
+      }
+    ]
+  },
+  {
+    "record": 67,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015498641087477046
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0006640580912997684
+      },
+      {
+        "cycles_per_sample": 0.0078125,
+        "frequency_GHz_assuming_80GSa": 0.625,
+        "variance_fraction": 0.0003733258969200409
+      }
+    ]
+  },
+  {
+    "record": 45,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001621378375616787
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0008412569338340973
+      },
+      {
+        "cycles_per_sample": 0.0078125,
+        "frequency_GHz_assuming_80GSa": 0.625,
+        "variance_fraction": 0.0004396308077062203
+      }
+    ]
+  },
+  {
+    "record": 84,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.3707398957216275
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.2540119464096288
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.006096887163199782
+      }
+    ]
+  },
+  {
+    "record": 26,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015014979697116828
+      },
+      {
+        "cycles_per_sample": 0.00390625,
+        "frequency_GHz_assuming_80GSa": 0.3125,
+        "variance_fraction": 0.0004164545536896782
+      },
+      {
+        "cycles_per_sample": 0.01953125,
+        "frequency_GHz_assuming_80GSa": 1.5625,
+        "variance_fraction": 0.0003371372235046
+      }
+    ]
+  },
+  {
+    "record": 51,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.3395933409606883
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.31313026861211
+      },
+      {
+        "cycles_per_sample": 0.234375,
+        "frequency_GHz_assuming_80GSa": 18.75,
+        "variance_fraction": 0.013846628463356887
+      }
+    ]
+  },
+  {
+    "record": 49,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.4192676452700465
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.2205944474107111
+      },
+      {
+        "cycles_per_sample": 0.234375,
+        "frequency_GHz_assuming_80GSa": 18.75,
+        "variance_fraction": 0.010747735725059555
+      }
+    ]
+  },
+  {
+    "record": 91,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014542055919060245
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.001205598636990715
+      },
+      {
+        "cycles_per_sample": 7.62939453125e-06,
+        "frequency_GHz_assuming_80GSa": 0.0006103515625,
+        "variance_fraction": 0.00041471056799274164
+      }
+    ]
+  },
+  {
+    "record": 92,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.42412728647130266
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.2239678277971421
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.0035041848759322894
+      }
+    ]
+  },
+  {
+    "record": 99,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0014439363983792303
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.000520164138057334
+      },
+      {
+        "cycles_per_sample": 0.01171875,
+        "frequency_GHz_assuming_80GSa": 0.9375,
+        "variance_fraction": 0.0004477543860593374
+      }
+    ]
+  },
+  {
+    "record": 40,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0016944735889341395
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.00035126482290302226
+      },
+      {
+        "cycles_per_sample": 0.0625,
+        "frequency_GHz_assuming_80GSa": 5.0,
+        "variance_fraction": 0.00030722103769458264
+      }
+    ]
+  },
+  {
+    "record": 61,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001549888020990479
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0007401670774783056
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.000505034911128186
+      }
+    ]
+  },
+  {
+    "record": 12,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.4221733831682354
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.22057738009710104
+      },
+      {
+        "cycles_per_sample": 0.390625,
+        "frequency_GHz_assuming_80GSa": 31.25,
+        "variance_fraction": 0.003792641286560281
+      }
+    ]
+  },
+  {
+    "record": 32,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015197536103833283
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.00047904120299034766
+      },
+      {
+        "cycles_per_sample": 0.01953125,
+        "frequency_GHz_assuming_80GSa": 1.5625,
+        "variance_fraction": 0.0003737334430769386
+      }
+    ]
+  },
+  {
+    "record": 96,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001494856512127069
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0006107125824647035
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0004678365317687137
+      }
+    ]
+  },
+  {
+    "record": 46,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.001640489053826742
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.0006521087131602096
+      },
+      {
+        "cycles_per_sample": 1.9073486328125e-06,
+        "frequency_GHz_assuming_80GSa": 0.000152587890625,
+        "variance_fraction": 0.0005520161321227286
+      }
+    ]
+  },
+  {
+    "record": 58,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.25,
+        "frequency_GHz_assuming_80GSa": 20.0,
+        "variance_fraction": 0.0015792247009869186
+      },
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.0005070058316862763
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.00040258532928479123
+      }
+    ]
+  },
+  {
+    "record": 14,
+    "peaks": [
+      {
+        "cycles_per_sample": 0.3125,
+        "frequency_GHz_assuming_80GSa": 25.0,
+        "variance_fraction": 0.34281590447195637
+      },
+      {
+        "cycles_per_sample": 0.15625,
+        "frequency_GHz_assuming_80GSa": 12.5,
+        "variance_fraction": 0.30298285759517746
+      },
+      {
+        "cycles_per_sample": 0.234375,
+        "frequency_GHz_assuming_80GSa": 18.75,
+        "variance_fraction": 0.003912138518809788
+      }
+    ]
+  }
+]

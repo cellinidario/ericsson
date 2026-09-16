@@ -1,0 +1,15 @@
+# E2E (this work) W=16 D=1 seed0 100k vs BPAM + adaptive LLS equalizer (MATLAB
+# simulator, same scenario). C-band 10.238 km, MZM ER25, TX 20GHz rect + 10GHz Gauss
+# (E2E) / 10GHz Gauss (baseline), RX 10GHz Gauss, N_DAC=6. Native OSNR axis.
+# OSNR = Eb/N0 + 2.05 dB (Luca 16/7: signal 1 pol, ASE 2 pol, Bref 12.5 GHz).
+# col1=OSNR[dB]  col2=E2E_ideal  col3=E2E_NADC8  col4=E2E_NADC6  col5=E2E_NADC5
+   11.00  5.3352e-02  5.4551e-02  5.7053e-02  6.7223e-02
+   12.00  3.4524e-02  3.5533e-02  3.8094e-02  4.7572e-02
+   13.00  2.0698e-02  2.1422e-02  2.3280e-02  2.9553e-02
+   14.00  1.1228e-02  1.1718e-02  1.3203e-02  1.8077e-02
+   15.00  5.5958e-03  5.8988e-03  6.8681e-03  9.6183e-03
+   16.00  2.4866e-03  2.6573e-03  3.3115e-03  5.1285e-03
+   17.00  9.8045e-04  1.0692e-03  1.4558e-03  2.4328e-03
+   18.00  3.4310e-04  3.7822e-04  5.6494e-04  1.0361e-03
+   19.00  1.0291e-04  1.1744e-04  1.9938e-04  4.3803e-04
+   20.00  2.8188e-05  3.3282e-05  6.6782e-05  1.6881e-04

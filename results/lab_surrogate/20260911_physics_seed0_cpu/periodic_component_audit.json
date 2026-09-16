@@ -1,0 +1,62 @@
+[
+  {
+    "row": 0,
+    "phase_means": [
+      0.8499983649773307,
+      0.8086158722061038,
+      0.7912650027663334,
+      0.8326657133374052
+    ],
+    "variance_explained_by_phase_means": 0.0015392463222557457,
+    "strongest_frequency_GHz": 20.0,
+    "single_bin_spectral_fraction": 0.0015392462587449066
+  },
+  {
+    "row": 1,
+    "phase_means": [
+      0.8525511166620933,
+      0.8132715166621927,
+      0.7932568831154793,
+      0.8325459564029692
+    ],
+    "variance_explained_by_phase_means": 0.0014876514776752876,
+    "strongest_frequency_GHz": 20.0,
+    "single_bin_spectral_fraction": 0.0014876514604775589
+  },
+  {
+    "row": 20,
+    "phase_means": [
+      0.8485958932713249,
+      0.8459675779044226,
+      0.8443219982131328,
+      0.8472084439077029
+    ],
+    "variance_explained_by_phase_means": 8.93113988753254e-06,
+    "strongest_frequency_GHz": 25.0,
+    "single_bin_spectral_fraction": 0.3447918428619009
+  },
+  {
+    "row": 35,
+    "phase_means": [
+      0.8449311998920496,
+      0.8461313885520065,
+      0.8439856701901585,
+      0.8431184460614052
+    ],
+    "variance_explained_by_phase_means": 4.513705903952996e-06,
+    "strongest_frequency_GHz": 25.0,
+    "single_bin_spectral_fraction": 0.3690576488932857
+  },
+  {
+    "row": 60,
+    "phase_means": [
+      0.848957287245423,
+      0.8465615246783227,
+      0.8466109548526409,
+      0.8487024165963192
+    ],
+    "variance_explained_by_phase_means": 4.5828515606491265e-06,
+    "strongest_frequency_GHz": 25.0,
+    "single_bin_spectral_fraction": 0.3700870465591264
+  }
+]

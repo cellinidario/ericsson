@@ -1,0 +1,2 @@
+# mode adc | BER at OSNR 11..20 (rxonly8=complex RX classical BPAM sps8 200k; txcx8=TX+RX complex sps8 200k)
+rxonly8  6 6.6211e-02 5.0875e-02 3.8461e-02 2.8204e-02 2.0239e-02 1.4199e-02 9.5596e-03 6.2424e-03 3.9117e-03 2.4911e-03

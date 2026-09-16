@@ -1,0 +1,3 @@
+# campagna notturna: init classico buono/rail, e famiglie a 300k+coseno
+{"tag": "A_init_classico_rail(+-Vpi)", "steps": 100000, "osnr": [13, 15, 17, 19], "ber": [0.007752498611807823, 0.0012884163297712803, 0.00011050354078179225, 5.37517234988627e-06], "min": 8.0}
+{"tag": "A_init_classico_lineare_0.6Vpi", "steps": 100000, "osnr": [13, 15, 17, 19], "ber": [0.007681746035814285, 0.0012384146684780717, 0.00010937850311165676, 5.000160399504239e-06], "min": 7.6}

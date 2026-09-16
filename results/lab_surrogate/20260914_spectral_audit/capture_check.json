@@ -1,0 +1,38 @@
+[
+  {
+    "file": "RX_34dBOSNR_100_CH1out_20260909.mat",
+    "record": 0,
+    "corr_drive_squared": 0.49482921491925025,
+    "two_tone_variance_fraction": 0.0008141662790897666
+  },
+  {
+    "file": "RX_34dBOSNR_100_CH1out_20260909.mat",
+    "record": 20,
+    "corr_drive_squared": 0.009391766171497347,
+    "two_tone_variance_fraction": 0.6394694573815617
+  },
+  {
+    "file": "RX_15dBOSNR_100_CH1out_20260909.mat",
+    "record": 0,
+    "corr_drive_squared": 0.482322190223562,
+    "two_tone_variance_fraction": 0.0011311154067354886
+  },
+  {
+    "file": "RX_15dBOSNR_100_CH1out_20260909.mat",
+    "record": 20,
+    "corr_drive_squared": 0.48057194665667613,
+    "two_tone_variance_fraction": 0.0013555779232729364
+  },
+  {
+    "file": "RX_9dBOSNR_2nd_100_CH1out_20260909.mat",
+    "record": 0,
+    "corr_drive_squared": 0.41996948262731465,
+    "two_tone_variance_fraction": 0.0013080788884867432
+  },
+  {
+    "file": "RX_9dBOSNR_2nd_100_CH1out_20260909.mat",
+    "record": 20,
+    "corr_drive_squared": 0.009511811914078286,
+    "two_tone_variance_fraction": 0.558614626561169
+  }
+]

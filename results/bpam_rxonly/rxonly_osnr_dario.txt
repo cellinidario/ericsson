@@ -1,0 +1,16 @@
+# RX-only: standard BPAM TX (NRZ pulse) + NN receiver (FC 64-128-32, sigmoid, window 6 symbols),
+# vs BPAM + adaptive LLS equalizer, same chain. C-band 10.238 km, MZM ER 30 dB Vpeak 0.6,
+# N_DAC = 6, 2 samples/symbol. Reproduced entirely in the PyTorch chain.
+# OSNR = Eb/N0 + 2.05 dB (signal 1 pol, ASE 2 pol, Bref 12.5 GHz).
+#
+#    OSNR[dB]        NN_adc8        NN_adc6        NN_adc5      AdEq_adc8      AdEq_adc6      AdEq_adc5
+    11     4.9272e-02     5.1517e-02     5.7833e-02     7.0894e-02     7.3482e-02     8.1176e-02
+    12     3.2746e-02     3.4154e-02     3.8689e-02     4.9814e-02     5.2712e-02     6.0561e-02
+    13     2.0010e-02     2.1058e-02     2.4361e-02     3.3224e-02     3.5214e-02     4.2778e-02
+    14     1.1206e-02     1.1859e-02     1.4126e-02     2.0533e-02     2.2219e-02     2.8404e-02
+    15     5.5253e-03     5.9996e-03     8.3294e-03     1.1501e-02     1.2996e-02     1.7755e-02
+    16     2.4282e-03     2.6892e-03     3.4626e-03     5.8219e-03     6.7045e-03     1.0346e-02
+    17     8.9682e-04     1.0219e-03     1.4144e-03     2.6286e-03     3.1934e-03     5.7110e-03
+    18     2.7519e-04     3.0975e-04     4.4972e-04     1.0134e-03     1.3405e-03     2.9853e-03
+    19     6.2125e-05     7.7282e-05     1.1969e-04     3.3408e-04     4.7231e-04     1.4391e-03
+    20     1.1563e-05     1.3313e-05     2.7875e-05     8.8978e-05     1.4404e-04     7.0014e-04

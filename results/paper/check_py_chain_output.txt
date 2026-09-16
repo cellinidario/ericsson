@@ -1,0 +1,4 @@
+OSNR 15 : linear eq. on OUR chain -> BER_amp 1.235e-02  BER_phase 1.693e-02  total 1.464e-02
+OSNR 17 : linear eq. on OUR chain -> BER_amp 3.139e-03  BER_phase 5.657e-03  total 4.398e-03
+reference BPAM+AE (prof chain, N_ADC=6): 15 -> 1.5e-2 ; 17 -> 4.1e-3
+our NN on the same chain:                15 -> 1.31e-2 ; 17 -> 3.7e-3

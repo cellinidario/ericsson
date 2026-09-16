@@ -1,0 +1,1 @@
+# D=2 family, N_DAC=N_ADC=6, cband, train@14, sigmoid head. col1=W col2..: BER@EbN0 8/10/12/14/16

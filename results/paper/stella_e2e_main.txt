@@ -1,0 +1,10 @@
+# Dario E2E autoencoder (bipolar PAM-4), C-band 10.238 km, MZM ER=25 dB,
+# TX 20 GHz rect + 10 GHz Gaussian digital filters, RX same, N_DAC=6, W=64 D=2.
+# OSNR: signal 1 pol, ASE 2 pol, Bref=12.5 GHz (0.1 nm) -> OSNR = Eb/N0 + 2.05 dB.
+# col1=Eb/N0[dB]   col2=OSNR[dB]   col3=BER
+  10.000   12.050   2.085979e-02
+  12.000   14.050   4.344264e-03
+  14.000   16.050   4.373890e-04
+  16.000   18.050   1.850059e-05
+  18.000   20.050   6.250066e-07
+  20.000   22.050   8.333422e-08

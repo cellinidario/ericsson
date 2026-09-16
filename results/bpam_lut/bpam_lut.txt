@@ -1,0 +1,19 @@
+# End-to-end autoencoder trained and tested through a fitted hybrid digital surrogate, C-band 10.238 km, MZM ER 30 dB, TX 20 GHz rect, WSS optical filter,
+# RX 10 GHz Gaussian, N_DAC = 6, 2 samples/symbol. RX-DSP = fully connected 64-128-32 with
+# sigmoid output, context window 6 symbols (12 samples); TX-DSP = trainable LUT (1024 rows, 2 voltages per row).
+# OSNR = Eb/N0 + 2.05 dB (signal 1 pol, ASE 2 pol, Bref 12.5 GHz).
+
+# NN initialization: 100000 steps; joint LUT + RX: 5000 steps; frozen digital surrogate.
+# columns:
+#       OSNR[dB]          E2E_adc8          E2E_adc6          E2E_adc5      BPAM_AE_adc8      BPAM_AE_adc6      BPAM_AE_adc5
+
+   11.00        3.8546e-02        4.0156e-02        4.3878e-02        7.0894e-02        7.3482e-02        8.1176e-02
+   12.00        2.1490e-02        2.2267e-02        2.5516e-02        4.9814e-02        5.2712e-02        6.0561e-02
+   13.00        1.0518e-02        1.1036e-02        1.3180e-02        3.3224e-02        3.5214e-02        4.2778e-02
+   14.00        4.3190e-03        4.7642e-03        5.8037e-03        2.0533e-02        2.2219e-02        2.8404e-02
+   15.00        1.5651e-03        1.7162e-03        2.2238e-03        1.1501e-02        1.2996e-02        1.7755e-02
+   16.00        4.5526e-04        5.0339e-04        7.8578e-04        5.8219e-03        6.7045e-03        1.0346e-02
+   17.00        1.0859e-04        1.3013e-04        2.2331e-04        2.6286e-03        3.1934e-03        5.7110e-03
+   18.00        2.1906e-05        2.8469e-05        5.5063e-05        1.0134e-03        1.3405e-03        2.9853e-03
+   19.00        3.2188e-06        5.3125e-06        1.3625e-05        3.3408e-04        4.7231e-04        1.4391e-03
+   20.00        2.8125e-07        1.0313e-06        1.9063e-06        8.8978e-05        1.4404e-04        7.0014e-04

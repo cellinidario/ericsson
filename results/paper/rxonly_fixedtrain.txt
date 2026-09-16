@@ -1,0 +1,6 @@
+# osnr  BER_fixed_training   (RX-only, win11 32-64-16, Vpeak0.6, N_ADC=6, trained AT the evaluation point)
+ 17.0  4.1566e-03
+# STOPPED after OSNR 17: fixed-point training is WORSE than range training (4.157e-3 vs 3.68e-3),
+# so the hypothesis is already answered negatively; OSNR 15 and 19 were not run and the GPU time
+# went to the more informative diagnostic (linear-FFE control + LR schedule, rxonly_lrsched.txt).
+# per-bit @17 fixed: amplitude 2.627e-3  phase 5.599e-3   (range training: 2.4e-3 / 4.9e-3)

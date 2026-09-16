@@ -1,0 +1,5 @@
+{"stage": "waiting_for_existing_surrogate_training", "updated_utc": "2026-09-15T16:22:28.304937+00:00", "pid": 8564, "waiting_pid": 48600}
+{"stage": "control", "updated_utc": "2026-09-15T16:23:23.851911+00:00", "pid": 8564}
+{"stage": "evaluate", "updated_utc": "2026-09-15T16:34:24.816966+00:00", "pid": 8564}
+{"stage": "report", "updated_utc": "2026-09-15T16:34:30.232249+00:00", "pid": 8564}
+{"stage": "completed", "updated_utc": "2026-09-15T16:34:32.597577+00:00", "pid": 8564, "pilot_passed": true, "report": "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\results\\sim_surrogate\\20260915_identity_seed0\\pilot_report_100000.md"}

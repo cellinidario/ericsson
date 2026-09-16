@@ -1,0 +1,17 @@
+# E2E: complex TX + RX (both FC 32-64-16)
+# C-band 10.238 km, MZM ER 30 dB, no TX Gaussian, WSS optical filter, RX 10 GHz Gaussian,
+# N_DAC=6. TX 20 GHz ideal frequency rect, 2 sps, RX window 5 symbols (10 samples).
+# vs BPAM + adaptive LLS equalizer, same N_ADC (baseline: prof simulator, NRZ TX, ER 30 dB).
+# OSNR = Eb/N0 + 2.05 dB (signal 1 pol, ASE 2 pol, Bref 12.5 GHz).
+#       OSNR[dB]    txcomplex_adc8    txcomplex_adc6    txcomplex_adc5      BPAM_AE_adc8      BPAM_AE_adc6      BPAM_AE_adc5
+
+   11.00        7.8663e-02        7.7209e-02        8.4459e-02        7.0894e-02        7.3482e-02        8.1176e-02
+   12.00        5.2876e-02        5.2348e-02        5.9275e-02        4.9814e-02        5.2712e-02        6.0561e-02
+   13.00        3.3132e-02        3.2933e-02        3.8919e-02        3.3224e-02        3.5214e-02        4.2778e-02
+   14.00        1.9215e-02        1.9314e-02        2.4196e-02        2.0533e-02        2.2219e-02        2.8404e-02
+   15.00        1.0406e-02        1.0611e-02        1.4194e-02        1.1501e-02        1.2996e-02        1.7755e-02
+   16.00        4.9868e-03        5.1114e-03        7.3096e-03        5.8219e-03        6.7045e-03        1.0346e-02
+   17.00        2.2717e-03        2.3943e-03        3.9462e-03        2.6286e-03        3.1934e-03        5.7110e-03
+   18.00        9.1513e-04        9.9132e-04        1.7681e-03        1.0134e-03        1.3405e-03        2.9853e-03
+   19.00        3.4632e-04        3.7641e-04        7.8907e-04        3.3408e-04        4.7231e-04        1.4391e-03
+   20.00        1.1913e-04        1.3278e-04        3.3307e-04        8.8978e-05        1.4404e-04        7.0014e-04
