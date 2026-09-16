@@ -65,13 +65,24 @@ class Config:
         self.curr_lowsnr_ebn0 = 10.0            # stage-1 fixed training Eb/N0 [dB]
         self.curr_lowsnr_steps = 20000          # stage-1 joint-at-low-SNR steps
         self.curr_rxonly_steps = 20000          # stage-2 frozen-TX RX-only steps
-        self.bpam_warm_start = False            # bpam-4 E2E: warm-start the TX on the classical BPAM
-                                                # constellation (distill) + prime the RX, then free joint
-                                                # fine-tune. Breaks the TX<->RX co-adaptation deadlock so the
-                                                # E2E reaches the below-theory BPAM basin. Needs
-                                                # bpam_precode_e2e=True. Basin selection, not level imposition.
-        self.warm_distill_steps = 8000          # phase-0 TX distillation steps
-        self.warm_rxonly_steps = 15000          # phase-1 RX-only priming steps
+        self.bpam_warm_start = False            # bpam-4 E2E: INITIALIZE THE AUTOENCODER AT THE CLASSICAL
+                                                # TRANSCEIVER, then fine-tune end-to-end without constraints
+                                                # (the standard pre-training + fine-tuning scheme; in E2E
+                                                # learning the transmitter is routinely initialized at a
+                                                # conventional constellation). Phase 0 pre-trains the DPD,
+                                                # supervised, to reproduce the classical BPAM drive levels;
+                                                # phase 1 pre-trains the RX to decode that transmitter (or
+                                                # loads one already trained, see warm_rx_checkpoint). It
+                                                # selects the signalling BASIN -- nothing is imposed on the
+                                                # joint stage, and the network then moves ~83% RMS away from
+                                                # the classical levels. Without it the E2E always lands in a
+                                                # unipolar (intensity) solution. Needs bpam_precode_e2e=True:
+                                                # in direct detection the ABSOLUTE sign is unobservable.
+        self.warm_pretrain_steps = 8000         # phase-0 supervised TX pre-training steps
+        self.warm_rxonly_steps = 15000          # phase-1 RX pre-training steps (0 = skip)
+        self.warm_rx_checkpoint = None          # optional: path to an already-trained RX (e.g. the RX-only
+                                                # equalizer of bpam_rxonly, trained on the classical BPAM TX).
+                                                # If set, its weights are loaded and phase 1 is skipped.
         self.tx_init_gain = 1.0                 # DPD weight-init multiplier. >1 spreads the initial per-symbol
                                                 # drives across the full (bipolar) range instead of starting at
                                                 # the null -> lets the E2E explore bipolar signalling from step

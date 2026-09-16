@@ -146,33 +146,76 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
         return transmitter, channel, receiver
     bpam = getattr(config, "modulation_format", "upam-4") == "bpam-4"
 
-    # WARM-START (bpam-4 E2E): break the TX<->RX co-adaptation deadlock that keeps from-scratch joint
-    # training in a quasi-unipolar local min. This is BASIN SELECTION, not answer-imposition: after the two
-    # priming phases the network is fine-tuned FREELY and the constellation stays learned (it rediscovers the
-    # optimal |A2/A1| and can beat the classical detector). Needs the differential precoder in E2E.
+    def _priming_bce(bits_b, noisy_b):
+        """Per-bit BCE through the SAME head that decides at evaluation time. The RX exposes two
+        outputs: forward() -> auxiliary SYMBOL logits, and the sigmoid BIT head (rx_bit_head, the
+        default for bpam-4) that evaluate()/bit_posteriors_direct actually use. Priming on the symbol
+        head alone leaves the bit head at its random init, so the joint stage starts from a random
+        decision path (BER ~0.5) and wastes the priming entirely."""
+        if bpam and receiver.bit_head is not None:
+            bit_logits, _ = receiver.bit_and_symbol_logits(noisy_b)
+            m = bit_logits.shape[0]
+            post = torch.sigmoid(bit_logits[guard:m - guard]).T                 # (k, n)
+        else:
+            logits_b = receiver(noisy_b)
+            m = logits_b.shape[0]
+            post = bit_posteriors(logits_b[guard:m - guard], config.bits_per_symbol)
+        return F.binary_cross_entropy(post.clamp(1e-6, 1 - 1e-6),
+                                      bits_b[:, guard:m - guard].float())
+
+    # INITIALIZATION AT THE CLASSICAL TRANSCEIVER (bpam-4 E2E), then unconstrained end-to-end fine-tuning:
+    # the standard pre-training + fine-tuning scheme (in E2E learning the transmitter is routinely initialized
+    # at a conventional constellation). It breaks the TX<->RX co-adaptation deadlock that otherwise keeps
+    # from-scratch joint training in a unipolar (intensity) solution. This is BASIN SELECTION, not
+    # answer-imposition: the joint stage that follows is FREE, and the network then moves ~83% RMS away from
+    # the classical levels, uses its context memory and fills the T/2 slot the classical TX leaves empty.
+    # Needs the differential precoder: in direct detection the ABSOLUTE sign is unobservable.
     if bpam and equalizer == "end-to-end" and getattr(config, "bpam_warm_start", False):
         if not getattr(transmitter, "precode_e2e", False):
             raise RuntimeError("bpam_warm_start needs bpam_precode_e2e=True (classical BPAM alphabet)")
-        # Phase 0 -- distil the DPD onto the classical BPAM constellation (supervised MSE to fixed_levels).
+        # Phase 0 -- pre-train the DPD, supervised, onto the classical BPAM drive levels (MSE to fixed_levels).
         tx_opt = torch.optim.Adam(transmitter.parameters(), lr=config.learning_rate)
-        for _ in range(getattr(config, "warm_distill_steps", 8000)):
+        pretrain_steps = getattr(config, "warm_pretrain_steps",
+                                 getattr(config, "warm_distill_steps", 8000))   # legacy name still accepted
+        for _ in range(pretrain_steps):
             bits = random_bits(config.bits_per_symbol, window, device)
             coded = transmitter._precode_bpam(bits)
-            target = transmitter.fixed_levels[(coded[0] * 2 + coded[1]).long()]     # classical drive/symbol
+            level = transmitter.fixed_levels[(coded[0] * 2 + coded[1]).long()]      # classical drive/symbol
+            sub = transmitter.tx_subsymbols
+            if sub > 1:
+                # the DPD emits `sub` values per symbol (T/2 slots) while the classical TX emits one
+                # per symbol: the equivalent target is the level on the first slot and 0 on the others
+                # (zero-stuffing at T spacing, exactly what the fixed-level branch does). Fitting this
+                # keeps the sub-symbol freedom available to the FREE fine-tune that follows.
+                target = torch.zeros(level.shape[0], sub, device=level.device, dtype=level.dtype)
+                target[:, 0] = level
+                target = target.reshape(-1)
+            else:
+                target = level
             drive = transmitter.symbol_drive_levels(bits)[0]
             tx_opt.zero_grad(); F.mse_loss(drive, target).backward(); tx_opt.step()
-        # Phase 1 -- RX-only: let the FFE learn to decode the (now classical-BPAM) TX before joint fine-tune.
-        rx_opt = torch.optim.Adam(receiver.parameters(), lr=config.learning_rate)
-        for _ in range(getattr(config, "warm_rxonly_steps", 15000)):
-            ebn0_db = float(np.random.uniform(*ebn0_range))
-            bits = random_bits(config.bits_per_symbol, window, device)
-            noisy = link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver)
-            logits = receiver(noisy); n = logits.shape[0]
-            post = bit_posteriors(logits[guard:n - guard], config.bits_per_symbol)
-            rx_opt.zero_grad()
-            F.binary_cross_entropy(post.clamp(1e-6, 1 - 1e-6), bits[:, guard:n - guard].float()).backward()
-            rx_opt.step()
-        print("=== warm-start done (TX distilled to classical BPAM, RX primed) -> free joint fine-tune ===")
+        # Phase 1 -- give the RX a receiver that already decodes the (now classical-BPAM) transmitter.
+        # Either load one trained elsewhere on exactly that signal (the RX-only equalizer of bpam_rxonly:
+        # same architecture, and it was trained against the classical BPAM TX), or pre-train it here.
+        rx_ckpt = getattr(config, "warm_rx_checkpoint", None)
+        if rx_ckpt:
+            state = torch.load(rx_ckpt, map_location=device, weights_only=True)
+            state = state["rx"] if "rx" in state else state
+            # drop buffers whose length follows samples_per_symbol_sim (e.g. the unused matched filter):
+            own = receiver.state_dict()
+            state = {k: v for k, v in state.items() if k in own and own[k].shape == v.shape}
+            missing, unexpected = receiver.load_state_dict(state, strict=False)
+            trained = [k for k in own if k in state]
+            print(f"=== warm-start: RX loaded from {os.path.basename(rx_ckpt)} "
+                  f"({len(trained)} tensors, skipped {len(own) - len(trained)}) ===")
+        else:
+            rx_opt = torch.optim.Adam(receiver.parameters(), lr=config.learning_rate)
+            for _ in range(getattr(config, "warm_rxonly_steps", 15000)):
+                ebn0_db = float(np.random.uniform(*ebn0_range))
+                bits = random_bits(config.bits_per_symbol, window, device)
+                noisy = link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver)
+                rx_opt.zero_grad(); _priming_bce(bits, noisy).backward(); rx_opt.step()
+        print("=== initialized at the classical transceiver -> free end-to-end fine-tune ===")
 
     # STAGED CURRICULUM (bpam-4 E2E): break the deadlock WITHOUT imposing any constellation. (1) joint train
     # at low SNR, where the ~2 dB BPAM advantage makes the loss prefer bipolar signalling, so the TX
@@ -181,24 +224,20 @@ def train(config, device, num_steps, ebn0_range=(7.0, 19.0)):
     if bpam and equalizer == "end-to-end" and getattr(config, "bpam_curriculum", False):
         if not getattr(transmitter, "precode_e2e", False):
             raise RuntimeError("bpam_curriculum needs bpam_precode_e2e=True (sign otherwise undecodable in DD)")
-        def _bce(bits_b, logits_b):
-            m = logits_b.shape[0]
-            post = bit_posteriors(logits_b[guard:m - guard], config.bits_per_symbol)
-            return F.binary_cross_entropy(post.clamp(1e-6, 1 - 1e-6), bits_b[:, guard:m - guard].float())
         # Stage 1 -- joint at low SNR (TX self-organizes bipolar; no imposed levels)
         lo = getattr(config, "curr_lowsnr_ebn0", 10.0)
         opt1 = torch.optim.Adam(list(transmitter.parameters()) + list(receiver.parameters()), lr=config.learning_rate)
         for _ in range(getattr(config, "curr_lowsnr_steps", 20000)):
             bits = random_bits(config.bits_per_symbol, window, device)
             noisy = link_photocurrent(transmitter, channel, bits, lo, config, receiver)
-            opt1.zero_grad(); _bce(bits, receiver(noisy)).backward(); opt1.step()
+            opt1.zero_grad(); _priming_bce(bits, noisy).backward(); opt1.step()
         # Stage 2 -- freeze TX, train RX to convergence over the full SNR range
         opt2 = torch.optim.Adam(receiver.parameters(), lr=config.learning_rate)
         for _ in range(getattr(config, "curr_rxonly_steps", 20000)):
             ebn0_db = float(np.random.uniform(*ebn0_range))
             bits = random_bits(config.bits_per_symbol, window, device)
             noisy = link_photocurrent(transmitter, channel, bits, ebn0_db, config, receiver)
-            opt2.zero_grad(); _bce(bits, receiver(noisy)).backward(); opt2.step()
+            opt2.zero_grad(); _priming_bce(bits, noisy).backward(); opt2.step()
         print("=== curriculum priming done (TX self-organized bipolar @low SNR, RX converged) -> joint fine-tune ===")
 
     params = list(receiver.parameters())                      # "ffe": train the FFE only (TX levels fixed)
