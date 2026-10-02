@@ -1,0 +1,24 @@
+{
+  "rows": 1024,
+  "samples_per_row": 2,
+  "exhaustive_max_error_V": 0.0,
+  "checks": [
+    {
+      "pre_DAC_max_error_V": 1.9073486328125e-06,
+      "post_DAC_max_error_V": 0.0
+    },
+    {
+      "pre_DAC_max_error_V": 0.0,
+      "post_DAC_max_error_V": 0.0
+    },
+    {
+      "pre_DAC_max_error_V": 4.76837158203125e-07,
+      "post_DAC_max_error_V": 0.0
+    },
+    {
+      "pre_DAC_max_error_V": 9.5367431640625e-07,
+      "post_DAC_max_error_V": 0.0
+    }
+  ],
+  "precoder": "External cumulative XOR, unchanged"
+}

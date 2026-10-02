@@ -1,0 +1,43 @@
+{
+  "passed": true,
+  "exhaustive_contexts": 1024,
+  "sequences": {
+    "all_contexts": {
+      "max_voltage_error_before_shaping": 1.9073486328125e-06,
+      "max_error_after_DAC": 0.0,
+      "different_DAC_samples": 0,
+      "DAC_samples": 10240
+    },
+    "random": {
+      "max_voltage_error_before_shaping": 1.9073486328125e-06,
+      "max_error_after_DAC": 0.0,
+      "different_DAC_samples": 0,
+      "DAC_samples": 65536
+    },
+    "zeros": {
+      "max_voltage_error_before_shaping": 0.0,
+      "max_error_after_DAC": 0.0,
+      "different_DAC_samples": 0,
+      "DAC_samples": 2048
+    },
+    "ones": {
+      "max_voltage_error_before_shaping": 0.0,
+      "max_error_after_DAC": 0.0,
+      "different_DAC_samples": 0,
+      "DAC_samples": 2048
+    },
+    "alternating": {
+      "max_voltage_error_before_shaping": 0.0,
+      "max_error_after_DAC": 0.0,
+      "different_DAC_samples": 0,
+      "DAC_samples": 2048
+    }
+  },
+  "table_shape": [
+    1024,
+    2
+  ],
+  "external_precoder_preserved": true,
+  "initial_rx_digest": "9a746451b4d1e9fb97743693c6d6305f590c975baeeba3c9f8e9135c0d38a9bb",
+  "scope": "Exhaustive local map to float32 tolerance; exact DAC equality on listed sequences"
+}

@@ -1,0 +1,341 @@
+{
+  "protocol": {
+    "smoke": false,
+    "artifacts": {
+      "seed0": {
+        "nn": {
+          "path": "results\\sim_surrogate\\20261001_lut_transfer_20k\\nn\\last_training.pt",
+          "sha256": "55ab9d4d36e7d12347e2632c18cbc09c30ed35e17272e293db36912fcf8471c7"
+        },
+        "lut": {
+          "path": "results\\sim_surrogate\\20261001_lut_transfer_20k\\lut\\last_training.pt",
+          "sha256": "f83b9775c248268ce0e6ba0ec49e5acb37eefde45d5cc8eb9ce74869bc3709a4"
+        },
+        "protocol": {
+          "path": "results\\sim_surrogate\\20261001_lut_transfer_20k\\protocol.json",
+          "sha256": "4b064b49cdc241b29ca3a1d6f1175e90733260926e23cf0af957e511b6ee5832"
+        }
+      },
+      "seed1": {
+        "nn": {
+          "path": "results\\sim_surrogate\\20261001_lut_replication_seed1\\continuation\\nn\\last_training.pt",
+          "sha256": "0f87a0a6d4e0e0ea5853df9d5380a9dd0e25e1b517702a797c3b8169b9376405"
+        },
+        "lut": {
+          "path": "results\\sim_surrogate\\20261001_lut_replication_seed1\\continuation\\lut\\last_training.pt",
+          "sha256": "0de394973fd1709043c8cd289217fb6d77f5b420867538cf7918d1e12937778c"
+        },
+        "protocol": {
+          "path": "results\\sim_surrogate\\20261001_lut_replication_seed1\\continuation\\protocol.json",
+          "sha256": "8c04dd2e930153764fec82523c8c54e95a3b9f979e348871cf32b26eb9c5c71a"
+        }
+      }
+    },
+    "blocks_by_OSNR": {
+      "13": 128,
+      "14": 128,
+      "15": 128,
+      "16": 128,
+      "17": 256,
+      "18": 512,
+      "19": 1024
+    },
+    "symbols_per_block": 32768,
+    "discard_symbols_each_edge": 128,
+    "bit_seed_base": 20000000,
+    "ASE_seed_base": 30000000,
+    "minimum_errors_for_precise_comparison": 200,
+    "deadline_unix": 1790877333.5761344,
+    "training": false,
+    "test_channel": "Analytical reference at 8 sps; same model as prior 8/16-sps checks",
+    "eye_sps": 32,
+    "eye_noise": "None; immediately before/after the MZM, before fiber and ASE",
+    "eye_reference": "Standard BPAM at Vpeak=0.6 Vpi; illustration only, not a BER baseline",
+    "budget": "Fixed bit counts declared before evaluation; no error-driven stopping",
+    "scope": "Two DSP initializations, one shared fitted digital surrogate; no laboratory claims",
+    "code_sha256": "dcacc597704c5fd3c3cf1da4652905b612bbbf853b7e48ad6f26d4f6d914cf3c"
+  },
+  "points": {
+    "13": {
+      "blocks_done": 128,
+      "models": {
+        "seed0_nn": {
+          "errors": 72352,
+          "bits": 8323072,
+          "ber": 0.008692944143700787,
+          "adequate_errors": true
+        },
+        "seed0_lut": {
+          "errors": 68427,
+          "bits": 8323072,
+          "ber": 0.008221363458107776,
+          "adequate_errors": true
+        },
+        "seed1_nn": {
+          "errors": 71150,
+          "bits": 8323072,
+          "ber": 0.00854852631336122,
+          "adequate_errors": true
+        },
+        "seed1_lut": {
+          "errors": 66769,
+          "bits": 8323072,
+          "ber": 0.008022158164677657,
+          "adequate_errors": true
+        }
+      },
+      "paired": {
+        "seed0": {
+          "nn_only_errors": 22998,
+          "lut_only_errors": 19073
+        },
+        "seed1": {
+          "nn_only_errors": 22918,
+          "lut_only_errors": 18537
+        }
+      }
+    },
+    "14": {
+      "blocks_done": 128,
+      "models": {
+        "seed0_nn": {
+          "errors": 31092,
+          "bits": 8323072,
+          "ber": 0.003735639917568898,
+          "adequate_errors": true
+        },
+        "seed0_lut": {
+          "errors": 28588,
+          "bits": 8323072,
+          "ber": 0.0034347894623523623,
+          "adequate_errors": true
+        },
+        "seed1_nn": {
+          "errors": 30791,
+          "bits": 8323072,
+          "ber": 0.003699475386011319,
+          "adequate_errors": true
+        },
+        "seed1_lut": {
+          "errors": 27572,
+          "bits": 8323072,
+          "ber": 0.0033127191498523623,
+          "adequate_errors": true
+        }
+      },
+      "paired": {
+        "seed0": {
+          "nn_only_errors": 11286,
+          "lut_only_errors": 8782
+        },
+        "seed1": {
+          "nn_only_errors": 11540,
+          "lut_only_errors": 8321
+        }
+      }
+    },
+    "15": {
+      "blocks_done": 128,
+      "models": {
+        "seed0_nn": {
+          "errors": 11219,
+          "bits": 8323072,
+          "ber": 0.0013479397991510826,
+          "adequate_errors": true
+        },
+        "seed0_lut": {
+          "errors": 9704,
+          "bits": 8323072,
+          "ber": 0.001165915661909449,
+          "adequate_errors": true
+        },
+        "seed1_nn": {
+          "errors": 10949,
+          "bits": 8323072,
+          "ber": 0.0013154998539000983,
+          "adequate_errors": true
+        },
+        "seed1_lut": {
+          "errors": 9154,
+          "bits": 8323072,
+          "ber": 0.00109983429195374,
+          "adequate_errors": true
+        }
+      },
+      "paired": {
+        "seed0": {
+          "nn_only_errors": 4789,
+          "lut_only_errors": 3274
+        },
+        "seed1": {
+          "nn_only_errors": 4785,
+          "lut_only_errors": 2990
+        }
+      }
+    },
+    "16": {
+      "blocks_done": 128,
+      "models": {
+        "seed0_nn": {
+          "errors": 3300,
+          "bits": 8323072,
+          "ber": 0.00039648821973425197,
+          "adequate_errors": true
+        },
+        "seed0_lut": {
+          "errors": 2767,
+          "bits": 8323072,
+          "ber": 0.00033244936484990155,
+          "adequate_errors": true
+        },
+        "seed1_nn": {
+          "errors": 3401,
+          "bits": 8323072,
+          "ber": 0.00040862316221702757,
+          "adequate_errors": true
+        },
+        "seed1_lut": {
+          "errors": 2570,
+          "bits": 8323072,
+          "ber": 0.00030878021961122047,
+          "adequate_errors": true
+        }
+      },
+      "paired": {
+        "seed0": {
+          "nn_only_errors": 1594,
+          "lut_only_errors": 1061
+        },
+        "seed1": {
+          "nn_only_errors": 1753,
+          "lut_only_errors": 922
+        }
+      }
+    },
+    "17": {
+      "blocks_done": 256,
+      "models": {
+        "seed0_nn": {
+          "errors": 1661,
+          "bits": 16646144,
+          "ber": 9.978286863312008e-05,
+          "adequate_errors": true
+        },
+        "seed0_lut": {
+          "errors": 1139,
+          "bits": 16646144,
+          "ber": 6.842425489050197e-05,
+          "adequate_errors": true
+        },
+        "seed1_nn": {
+          "errors": 1607,
+          "bits": 16646144,
+          "ber": 9.653887410802166e-05,
+          "adequate_errors": true
+        },
+        "seed1_lut": {
+          "errors": 1101,
+          "bits": 16646144,
+          "ber": 6.614144392839567e-05,
+          "adequate_errors": true
+        }
+      },
+      "paired": {
+        "seed0": {
+          "nn_only_errors": 971,
+          "lut_only_errors": 449
+        },
+        "seed1": {
+          "nn_only_errors": 922,
+          "lut_only_errors": 416
+        }
+      }
+    },
+    "18": {
+      "blocks_done": 512,
+      "models": {
+        "seed0_nn": {
+          "errors": 661,
+          "bits": 33292288,
+          "ber": 1.98544479730561e-05,
+          "adequate_errors": true
+        },
+        "seed0_lut": {
+          "errors": 420,
+          "bits": 33292288,
+          "ber": 1.2615534264271653e-05,
+          "adequate_errors": true
+        },
+        "seed1_nn": {
+          "errors": 644,
+          "bits": 33292288,
+          "ber": 1.9343819205216535e-05,
+          "adequate_errors": true
+        },
+        "seed1_lut": {
+          "errors": 380,
+          "bits": 33292288,
+          "ber": 1.1414054810531496e-05,
+          "adequate_errors": true
+        }
+      },
+      "paired": {
+        "seed0": {
+          "nn_only_errors": 414,
+          "lut_only_errors": 173
+        },
+        "seed1": {
+          "nn_only_errors": 406,
+          "lut_only_errors": 142
+        }
+      }
+    },
+    "19": {
+      "blocks_done": 1024,
+      "models": {
+        "seed0_nn": {
+          "errors": 178,
+          "bits": 66584576,
+          "ber": 2.6732917845718503e-06,
+          "adequate_errors": false
+        },
+        "seed0_lut": {
+          "errors": 97,
+          "bits": 66584576,
+          "ber": 1.456793837659941e-06,
+          "adequate_errors": false
+        },
+        "seed1_nn": {
+          "errors": 191,
+          "bits": 66584576,
+          "ber": 2.868532195804626e-06,
+          "adequate_errors": false
+        },
+        "seed1_lut": {
+          "errors": 83,
+          "bits": 66584576,
+          "ber": 1.2465349332554133e-06,
+          "adequate_errors": false
+        }
+      },
+      "paired": {
+        "seed0": {
+          "nn_only_errors": 129,
+          "lut_only_errors": 48
+        },
+        "seed1": {
+          "nn_only_errors": 142,
+          "lut_only_errors": 34
+        }
+      }
+    }
+  },
+  "OSNR_at_BER_1e3_loglinear_interpolation": {
+    "seed0_nn": 15.243998279496413,
+    "seed0_lut": 15.122338123508294,
+    "seed1_nn": 15.234537910041619,
+    "seed1_lut": 15.074911946163656
+  },
+  "checkpoint_hashes_unchanged": true,
+  "training_performed": false
+}

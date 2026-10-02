@@ -1,0 +1,11 @@
+{
+  "digital_surrogate": "c:\\Users\\celli\\Documents\\MLforCPO2\\results\\bpam_lut_highrate\\seed0_148c6ac7f9dc\\run_20261001_213942_123980\\digital_surrogate\\digital_surrogate_best.pt",
+  "initial": "c:\\Users\\celli\\Documents\\MLforCPO2\\results\\bpam_lut_highrate\\seed0_148c6ac7f9dc\\run_20261001_213942_123980\\bpam_initial.pt",
+  "joint_nn": "c:\\Users\\celli\\Documents\\MLforCPO2\\results\\bpam_lut_highrate\\seed0_148c6ac7f9dc\\run_20261001_213942_123980\\joint_nn.pt",
+  "continued_nn": "c:\\Users\\celli\\Documents\\MLforCPO2\\results\\bpam_lut_highrate\\seed0_148c6ac7f9dc\\run_20261001_213942_123980\\continued_nn.pt",
+  "trained_lut": "c:\\Users\\celli\\Documents\\MLforCPO2\\results\\bpam_lut_highrate\\seed0_148c6ac7f9dc\\run_20261001_213942_123980\\trained_lut.pt",
+  "sha256": {
+    "nn": "13ca3b5e2081e583abfa5bcaffd3c63e5bda70a2f5aa10dcf286687467c061d6",
+    "lut": "4336b02b1ccdaa7e4b01abe61bb87a88e4facf48cfb1a0492bfc2f7411f82b43"
+  }
+}

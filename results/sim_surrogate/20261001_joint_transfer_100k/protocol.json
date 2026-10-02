@@ -1,0 +1,39 @@
+{
+  "joint_steps": 100000,
+  "learning_rate": 0.001,
+  "scheduler": null,
+  "initial_checkpoint": "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\results\\ofc_validation\\20260923\\warm_bw20_seed0\\joint_initial.pt",
+  "initial_sha256": "7dba9f1f9fd132bbc83e11aa87498a55d6e5d75d4c4f9edd2afd8da9cd356409",
+  "digital_surrogate_checkpoint": "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\results\\sim_surrogate\\20261001_ASE_ridge_fresh40k\\digital_surrogate_best.pt",
+  "digital_surrogate_sha256": "84b2d464383730731b5c81ba7016b5f39e2c35b74798ee13619b8e5682a3a9ca",
+  "initialization": "Shared RX-only and supervised-TX BPAM pretraining; no joint E2E updates yet",
+  "training_rng_seed": 202610010,
+  "evaluation_blocks": 128,
+  "training_EbN0_dB": 14.0,
+  "bandwidth_GHz": 20,
+  "DAC_RX_sps": 2,
+  "analog_sps": 8,
+  "check_sps": 16,
+  "eye_sps": 32,
+  "ADC_DAC_bits": 6,
+  "loss": "Same existing bit BCE plus auxiliary symbol CE in both arms",
+  "gates": {
+    "minimum_errors": 200,
+    "max_ber_ratio": 1.2,
+    "waveform_nmse": 0.001,
+    "gradient_relative_l2": 0.1,
+    "gradient_cosine": 0.99,
+    "rx_window_nmse_8_16": 0.0001
+  },
+  "deadline_unix": 1790862042.8463974,
+  "scope": "Single shared initialization, two serial trainings; no paper/notebook updates",
+  "code_sha256": {
+    "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\experiments\\highrate_digital_surrogate_transfer.py": "c3abb9db885ff7e8b584930b5d2a726bea6fdbc33f3b0ecbae8eade8bac155ab",
+    "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\experiments\\bandwidth_campaign.py": "b562fccb868cf7e523c5b84a515d0b8a208320486018718864083c5b0ab27068",
+    "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\experiments\\warmstart_highrate.py": "4e6c8899161ec46df64bc584072cb332cfb7626b0ed5ce90557e145366bb16de",
+    "functions\\channel.py": "07934158bac3377e018e2874bfd434d00475d6a45bb376d2badddbf56e16cc51",
+    "functions\\transmitter.py": "1d374a6b949e73243ded95e3d15f2b68219ec081d7001cc573ac7618efd23416",
+    "functions\\receiver.py": "908e5a3e234b9e4171265e21b3db0a3b177493ddeb1bd142959c93887bdb5c45",
+    "experiments\\diagnose_highrate_digital_surrogate.py": "30c01d9ff9a2543bb52eabbf47786f5ba41693efdbbdd3e59695f10022e1e3f7"
+  }
+}

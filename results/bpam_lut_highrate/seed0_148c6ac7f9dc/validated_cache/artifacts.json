@@ -1,0 +1,11 @@
+{
+  "digital_surrogate": "C:\\Users\\celli\\Documents\\MLforCPO2\\results\\sim_surrogate\\20261001_ASE_ridge_fresh40k\\digital_surrogate_best.pt",
+  "initial": "C:\\Users\\celli\\Documents\\MLforCPO2\\results\\ofc_validation\\20260923\\warm_bw20_seed0\\joint_initial.pt",
+  "joint_nn": "C:\\Users\\celli\\Documents\\MLforCPO2\\results\\sim_surrogate\\20261001_joint_transfer_100k\\digital_surrogate\\last_training.pt",
+  "continued_nn": "C:\\Users\\celli\\Documents\\MLforCPO2\\results\\sim_surrogate\\20261001_lut_transfer_20k\\nn\\last_training.pt",
+  "trained_lut": "C:\\Users\\celli\\Documents\\MLforCPO2\\results\\sim_surrogate\\20261001_lut_transfer_20k\\lut\\last_training.pt",
+  "sha256": {
+    "nn": "55ab9d4d36e7d12347e2632c18cbc09c30ed35e17272e293db36912fcf8471c7",
+    "lut": "f83b9775c248268ce0e6ba0ec49e5acb37eefde45d5cc8eb9ce74869bc3709a4"
+  }
+}

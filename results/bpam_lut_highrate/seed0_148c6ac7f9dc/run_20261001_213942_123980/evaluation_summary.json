@@ -1,0 +1,138 @@
+{
+  "points": {
+    "13": {
+      "blocks_done": 128,
+      "models": {
+        "nn": {
+          "errors": 72352,
+          "bits": 8323072,
+          "ber": 0.008692944143700787,
+          "adequate_errors": true
+        },
+        "lut": {
+          "errors": 68427,
+          "bits": 8323072,
+          "ber": 0.008221363458107776,
+          "adequate_errors": true
+        }
+      }
+    },
+    "14": {
+      "blocks_done": 128,
+      "models": {
+        "nn": {
+          "errors": 31092,
+          "bits": 8323072,
+          "ber": 0.003735639917568898,
+          "adequate_errors": true
+        },
+        "lut": {
+          "errors": 28588,
+          "bits": 8323072,
+          "ber": 0.0034347894623523623,
+          "adequate_errors": true
+        }
+      }
+    },
+    "15": {
+      "blocks_done": 128,
+      "models": {
+        "nn": {
+          "errors": 11219,
+          "bits": 8323072,
+          "ber": 0.0013479397991510826,
+          "adequate_errors": true
+        },
+        "lut": {
+          "errors": 9704,
+          "bits": 8323072,
+          "ber": 0.001165915661909449,
+          "adequate_errors": true
+        }
+      }
+    },
+    "16": {
+      "blocks_done": 128,
+      "models": {
+        "nn": {
+          "errors": 3300,
+          "bits": 8323072,
+          "ber": 0.00039648821973425197,
+          "adequate_errors": true
+        },
+        "lut": {
+          "errors": 2767,
+          "bits": 8323072,
+          "ber": 0.00033244936484990155,
+          "adequate_errors": true
+        }
+      }
+    },
+    "17": {
+      "blocks_done": 256,
+      "models": {
+        "nn": {
+          "errors": 1661,
+          "bits": 16646144,
+          "ber": 9.978286863312008e-05,
+          "adequate_errors": true
+        },
+        "lut": {
+          "errors": 1139,
+          "bits": 16646144,
+          "ber": 6.842425489050197e-05,
+          "adequate_errors": true
+        }
+      }
+    },
+    "18": {
+      "blocks_done": 512,
+      "models": {
+        "nn": {
+          "errors": 661,
+          "bits": 33292288,
+          "ber": 1.98544479730561e-05,
+          "adequate_errors": true
+        },
+        "lut": {
+          "errors": 420,
+          "bits": 33292288,
+          "ber": 1.2615534264271653e-05,
+          "adequate_errors": true
+        }
+      }
+    },
+    "19": {
+      "blocks_done": 1024,
+      "models": {
+        "nn": {
+          "errors": 178,
+          "bits": 66584576,
+          "ber": 2.6732917845718503e-06,
+          "adequate_errors": false
+        },
+        "lut": {
+          "errors": 97,
+          "bits": 66584576,
+          "ber": 1.456793837659941e-06,
+          "adequate_errors": false
+        }
+      }
+    }
+  },
+  "checkpoint_sha256": {
+    "nn": "13ca3b5e2081e583abfa5bcaffd3c63e5bda70a2f5aa10dcf286687467c061d6",
+    "lut": "4336b02b1ccdaa7e4b01abe61bb87a88e4facf48cfb1a0492bfc2f7411f82b43"
+  },
+  "test_channel": "Analytical reference, 8 sps",
+  "sampling": {
+    "nn": {
+      "rx_window_nmse_8_16": 1.2073016478097998e-05,
+      "passed": true
+    },
+    "lut": {
+      "rx_window_nmse_8_16": 2.4785576897556894e-05,
+      "passed": true
+    }
+  }
+}

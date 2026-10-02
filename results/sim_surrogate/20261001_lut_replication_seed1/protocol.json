@@ -1,0 +1,45 @@
+{
+  "joint_steps": 100000,
+  "learning_rate": 0.001,
+  "scheduler": null,
+  "initial_checkpoint": "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\results\\ofc_validation\\20260923\\warm_bw20_seed1\\joint_initial.pt",
+  "initial_sha256": "e8612907a2723cff89e9d744f4b3f0e9e1139ce66476f003c19bceac01f6eee1",
+  "digital_surrogate_checkpoint": "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\results\\sim_surrogate\\20261001_ASE_ridge_fresh40k\\digital_surrogate_best.pt",
+  "digital_surrogate_sha256": "84b2d464383730731b5c81ba7016b5f39e2c35b74798ee13619b8e5682a3a9ca",
+  "initialization": "Independent seed-one conventional BPAM pretraining; no joint weights reused",
+  "training_rng_seed": 202610011,
+  "evaluation_blocks": 128,
+  "training_EbN0_dB": 14.0,
+  "bandwidth_GHz": 20,
+  "DAC_RX_sps": 2,
+  "analog_sps": 8,
+  "check_sps": 16,
+  "eye_sps": 32,
+  "ADC_DAC_bits": 6,
+  "loss": "Same existing bit BCE plus auxiliary symbol CE in both arms",
+  "gates": {
+    "minimum_errors": 200,
+    "max_ber_ratio": 1.2,
+    "waveform_nmse": 0.001,
+    "gradient_relative_l2": 0.1,
+    "gradient_cosine": 0.99,
+    "rx_window_nmse_8_16": 0.0001
+  },
+  "deadline_unix": 1790868152.3071647,
+  "scope": "One additional DSP initialization; same frozen fitted channel and held-out test sequences; not laboratory or channel-fit replication",
+  "code_sha256": {
+    "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\experiments\\highrate_digital_surrogate_replication.py": "545f4a4145d09d0351c965b9968bd0d0ac5416d587f8ccd831d69c982589824a",
+    "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\experiments\\highrate_digital_surrogate_transfer.py": "b51ce3fd5575b312c932aa3a309ed9b616b7c6294d9e17e55210511133d91986",
+    "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\experiments\\highrate_digital_surrogate_lut.py": "04d9688fdaf663b1a1a82f26f911fbdee513e99810bdafe99eccf4bfb315600c"
+  },
+  "initialization_seed": 1,
+  "initialization_difference_l2_vs_seed0": {
+    "tx": 7.1117148183359795,
+    "rx": 67.54446252573436
+  },
+  "initialization_provenance": "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\results\\ofc_validation\\20260923\\warm_bw20_seed1\\job.json",
+  "initialization_provenance_sha256": "0ff322d1eedd7f5fddc402fb331fbf9ab424945853ad2c29f92b6c9e3f07b7b2",
+  "continuation_steps": 20000,
+  "continuation_training_seed": 202610013,
+  "replication_criterion": "LUT reference BER below equally continued NN at both OSNR points in both initializations; descriptive, not a population significance test"
+}

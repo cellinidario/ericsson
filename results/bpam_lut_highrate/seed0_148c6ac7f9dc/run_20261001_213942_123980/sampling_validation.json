@@ -1,0 +1,10 @@
+{
+  "nn": {
+    "rx_window_nmse_8_16": 1.2073016478097998e-05,
+    "passed": true
+  },
+  "lut": {
+    "rx_window_nmse_8_16": 2.4785576897556894e-05,
+    "passed": true
+  }
+}

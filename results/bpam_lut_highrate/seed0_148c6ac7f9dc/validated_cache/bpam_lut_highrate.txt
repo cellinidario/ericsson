@@ -1,0 +1,11 @@
+# Frozen digital surrogate during training; analytical channel for BER. ADC/DAC 6 bits.
+# Matched 20k-step continuation after 100k joint steps and conventional BPAM pretraining.
+# Columns: OSNR_dB NN_RX_BER LUT_RX_BER
+# Counts: evaluation_summary.json
+1.300000000e+01 8.692944144e-03 8.221363458e-03
+1.400000000e+01 3.735639918e-03 3.434789462e-03
+1.500000000e+01 1.347939799e-03 1.165915662e-03
+1.600000000e+01 3.964882197e-04 3.324493648e-04
+1.700000000e+01 9.978286863e-05 6.842425489e-05
+1.800000000e+01 1.985444797e-05 1.261553426e-05
+1.900000000e+01 2.673291785e-06 1.456793838e-06

@@ -1,0 +1,56 @@
+{
+  "smoke": false,
+  "artifacts": {
+    "seed0": {
+      "nn": {
+        "path": "results\\sim_surrogate\\20261001_lut_transfer_20k\\nn\\last_training.pt",
+        "sha256": "55ab9d4d36e7d12347e2632c18cbc09c30ed35e17272e293db36912fcf8471c7"
+      },
+      "lut": {
+        "path": "results\\sim_surrogate\\20261001_lut_transfer_20k\\lut\\last_training.pt",
+        "sha256": "f83b9775c248268ce0e6ba0ec49e5acb37eefde45d5cc8eb9ce74869bc3709a4"
+      },
+      "protocol": {
+        "path": "results\\sim_surrogate\\20261001_lut_transfer_20k\\protocol.json",
+        "sha256": "4b064b49cdc241b29ca3a1d6f1175e90733260926e23cf0af957e511b6ee5832"
+      }
+    },
+    "seed1": {
+      "nn": {
+        "path": "results\\sim_surrogate\\20261001_lut_replication_seed1\\continuation\\nn\\last_training.pt",
+        "sha256": "0f87a0a6d4e0e0ea5853df9d5380a9dd0e25e1b517702a797c3b8169b9376405"
+      },
+      "lut": {
+        "path": "results\\sim_surrogate\\20261001_lut_replication_seed1\\continuation\\lut\\last_training.pt",
+        "sha256": "0de394973fd1709043c8cd289217fb6d77f5b420867538cf7918d1e12937778c"
+      },
+      "protocol": {
+        "path": "results\\sim_surrogate\\20261001_lut_replication_seed1\\continuation\\protocol.json",
+        "sha256": "8c04dd2e930153764fec82523c8c54e95a3b9f979e348871cf32b26eb9c5c71a"
+      }
+    }
+  },
+  "blocks_by_OSNR": {
+    "13": 128,
+    "14": 128,
+    "15": 128,
+    "16": 128,
+    "17": 256,
+    "18": 512,
+    "19": 1024
+  },
+  "symbols_per_block": 32768,
+  "discard_symbols_each_edge": 128,
+  "bit_seed_base": 20000000,
+  "ASE_seed_base": 30000000,
+  "minimum_errors_for_precise_comparison": 200,
+  "deadline_unix": 1790877333.5761344,
+  "training": false,
+  "test_channel": "Analytical reference at 8 sps; same model as prior 8/16-sps checks",
+  "eye_sps": 32,
+  "eye_noise": "None; immediately before/after the MZM, before fiber and ASE",
+  "eye_reference": "Standard BPAM at Vpeak=0.6 Vpi; illustration only, not a BER baseline",
+  "budget": "Fixed bit counts declared before evaluation; no error-driven stopping",
+  "scope": "Two DSP initializations, one shared fitted digital surrogate; no laboratory claims",
+  "code_sha256": "dcacc597704c5fd3c3cf1da4652905b612bbbf853b7e48ad6f26d4f6d914cf3c"
+}

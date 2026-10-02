@@ -1,0 +1,152 @@
+{
+  "fit_sha256": "e2ca4b9099453820d9f6afd7d3d6f1becaf1383211bb130f017437156b1bdea9",
+  "filter_metrics": {
+    "reference": {
+      "segment_filter": {
+        "dc_gain": 1.0000000145228114,
+        "tap_energy": 0.37218170028915254,
+        "one_sided_noise_bandwidth_GHz": 29.77453515831228,
+        "response_magnitude": {
+          "0": 1.0000000145228114,
+          "10": 0.9999589137764996,
+          "20": 0.9997421253840539,
+          "30": 0.5001073251729733,
+          "40": 0.0004687009786721874,
+          "60": 0.00016825158194572198,
+          "80": 0.00013279981794767082
+        }
+      },
+      "optical_filter": {
+        "dc_gain": 1.0000000110784137,
+        "tap_energy": 0.1508113887676475,
+        "one_sided_noise_bandwidth_GHz": 12.064910834091648,
+        "response_magnitude": {
+          "0": 1.0000000110784137,
+          "10": 0.7912795345485981,
+          "20": 0.2825303714709382,
+          "30": 0.02873113998289477,
+          "40": 0.0006568300444594888,
+          "60": 4.586899471359375e-10,
+          "80": 2.5964677075052123e-08
+        }
+      },
+      "pd_filter": {
+        "dc_gain": 0.9999999893407221,
+        "tap_energy": 0.30969028767258777,
+        "one_sided_noise_bandwidth_GHz": 24.775223541979006,
+        "response_magnitude": {
+          "0": 0.9999999893407221,
+          "10": 0.9999252953103929,
+          "20": 0.9993728915940112,
+          "30": 0.0008632278245386267,
+          "40": 0.00029436642944347113,
+          "60": 0.00013076359051483744,
+          "80": 0.00010626458242768422
+        }
+      }
+    },
+    "fitted": {
+      "segment_filter": {
+        "dc_gain": 1.0001547361175653,
+        "tap_energy": 0.3702191960238621,
+        "one_sided_noise_bandwidth_GHz": 29.608372003925208,
+        "response_magnitude": {
+          "0": 1.0001547361175653,
+          "10": 1.001183557041105,
+          "20": 0.9962322371453624,
+          "30": 0.49536574825033797,
+          "40": 0.0004900959307462181,
+          "60": 0.008591696379627364,
+          "80": 0.002419971431208978
+        }
+      },
+      "optical_filter": {
+        "dc_gain": 1.1695795638494246,
+        "tap_energy": 0.281708266590116,
+        "one_sided_noise_bandwidth_GHz": 16.475174980902953,
+        "response_magnitude": {
+          "0": 1.1695795638494246,
+          "10": 0.9239835746160147,
+          "20": 0.33013705440821267,
+          "30": 0.033832537816603725,
+          "40": 0.06195287152342424,
+          "60": 0.3989015671285523,
+          "80": 0.5181431305637716
+        }
+      },
+      "pd_filter": {
+        "dc_gain": 0.734175656341904,
+        "tap_energy": 0.16640347780831496,
+        "one_sided_noise_bandwidth_GHz": 24.697467660544213,
+        "response_magnitude": {
+          "0": 0.734175656341904,
+          "10": 0.7325584546452147,
+          "20": 0.7328428673123376,
+          "30": 0.000634902309219801,
+          "40": 0.00017810708049035117,
+          "60": 0.00014999317912882217,
+          "80": 9.910973312798887e-05
+        }
+      }
+    }
+  },
+  "interventions": {
+    "reference": {
+      "noiseless_nmse": 0.0,
+      "paired_noise_mse": 0.0,
+      "field_power_before_ASE": 0.2947051525115967,
+      "mean_noise_shift": 0.007117022294551134,
+      "predicted_mean_noise_shift": 0.007077533286064863,
+      "mean_pointwise_noise_variance": 0.0036700782366096973
+    },
+    "fitted": {
+      "noiseless_nmse": 2.5985527827288024e-05,
+      "paired_noise_mse": 1.480047376389848e-05,
+      "field_power_before_ASE": 0.2948712110519409,
+      "mean_noise_shift": 0.00975051149725914,
+      "predicted_mean_noise_shift": 0.009711625054478645,
+      "mean_pointwise_noise_variance": 0.00366969034075737
+    },
+    "replace_segment_filter": {
+      "noiseless_nmse": 0.00032890046713873744,
+      "paired_noise_mse": 2.789900463540107e-05,
+      "field_power_before_ASE": 0.2947051525115967,
+      "mean_noise_shift": 0.009745901450514793,
+      "predicted_mean_noise_shift": 0.009706156328320503,
+      "mean_pointwise_noise_variance": 0.0036644786596298218
+    },
+    "replace_optical_filter": {
+      "noiseless_nmse": 0.17228516936302185,
+      "paired_noise_mse": 0.008445089682936668,
+      "field_power_before_ASE": 0.2948712110519409,
+      "mean_noise_shift": 0.00522744283080101,
+      "predicted_mean_noise_shift": 0.00519908033311367,
+      "mean_pointwise_noise_variance": 0.0019743330776691437
+    },
+    "replace_pd_filter": {
+      "noiseless_nmse": 0.31878992915153503,
+      "paired_noise_mse": 0.016340430825948715,
+      "field_power_before_ASE": 0.2948712110519409,
+      "mean_noise_shift": 0.013280900195240974,
+      "predicted_mean_noise_shift": 0.013227930292487144,
+      "mean_pointwise_noise_variance": 0.006831308361142874
+    },
+    "reference_optical_shape_preserve_fitted_DC": {
+      "noiseless_nmse": 0.0003409320197533816,
+      "paired_noise_mse": 1.6163259715540335e-05,
+      "field_power_before_ASE": 0.2948712110519409,
+      "mean_noise_shift": 0.007150702644139528,
+      "predicted_mean_noise_shift": 0.007111906539648771,
+      "mean_pointwise_noise_variance": 0.0036943615414202213
+    },
+    "reference_ASE_variance_only": {
+      "noiseless_nmse": 2.5985527827288024e-05,
+      "paired_noise_mse": 1.4766560525458772e-05,
+      "field_power_before_ASE": 0.2948712110519409,
+      "mean_noise_shift": 0.009745027869939804,
+      "predicted_mean_noise_shift": 0.009706156004457789,
+      "mean_pointwise_noise_variance": 0.003667594864964485
+    }
+  },
+  "scope": "Diagnostic only; reference replacements are not data-driven corrections"
+}

@@ -1,0 +1,69 @@
+{
+  "scope": "Diagnostic only; no gates changed and no DSP training performed",
+  "noise_statistics": {
+    "reference": {
+      "mean_noise_shift": 0.007117022294551134,
+      "mean_pointwise_noise_variance": 0.0036700782366096973,
+      "replicates": 32
+    },
+    "digital_surrogate": {
+      "mean_noise_shift": 0.06465673446655273,
+      "mean_pointwise_noise_variance": 0.006011825054883957,
+      "replicates": 32
+    },
+    "variance_ratio": 1.6380645036697388,
+    "paired_residual_correlation": 0.781345009803772
+  },
+  "reference_ber": [
+    {
+      "osnr": 13,
+      "errors": 9120,
+      "bits": 1032192,
+      "ber": 0.008835565476190476
+    },
+    {
+      "osnr": 15,
+      "errors": 1483,
+      "bits": 1032192,
+      "ber": 0.0014367482018849207
+    },
+    {
+      "osnr": 17,
+      "errors": 86,
+      "bits": 1032192,
+      "ber": 8.331783234126984e-05
+    },
+    {
+      "osnr": 19,
+      "errors": 3,
+      "bits": 1032192,
+      "ber": 2.9064360119047617e-06
+    }
+  ],
+  "digital_surrogate_ber": [
+    {
+      "osnr": 13,
+      "errors": 188177,
+      "bits": 1032192,
+      "ber": 0.18230813647073413
+    },
+    {
+      "osnr": 15,
+      "errors": 107807,
+      "bits": 1032192,
+      "ber": 0.10444471571180555
+    },
+    {
+      "osnr": 17,
+      "errors": 44402,
+      "bits": 1032192,
+      "ber": 0.043017190600198416
+    },
+    {
+      "osnr": 19,
+      "errors": 10923,
+      "bits": 1032192,
+      "ber": 0.010582333519345238
+    }
+  ]
+}

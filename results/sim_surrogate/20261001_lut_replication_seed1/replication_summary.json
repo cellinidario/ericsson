@@ -1,0 +1,81 @@
+{
+  "rows": [
+    {
+      "initialization": "seed0",
+      "OSNR_dB": 15.0,
+      "nn": {
+        "errors": 11074,
+        "bits": 8323072,
+        "ber": 0.0013305183470718504
+      },
+      "lut": {
+        "errors": 9849,
+        "bits": 8323072,
+        "ber": 0.0011833371139886811
+      },
+      "lut_over_nn_ber": 0.8893805309734514,
+      "lut_lower_observed_BER": true
+    },
+    {
+      "initialization": "seed0",
+      "OSNR_dB": 17.0,
+      "nn": {
+        "errors": 823,
+        "bits": 8323072,
+        "ber": 9.888175904281496e-05
+      },
+      "lut": {
+        "errors": 604,
+        "bits": 8323072,
+        "ber": 7.256935900590552e-05
+      },
+      "lut_over_nn_ber": 0.7339003645200487,
+      "lut_lower_observed_BER": true
+    },
+    {
+      "initialization": "seed1",
+      "OSNR_dB": 15.0,
+      "nn": {
+        "errors": 11118,
+        "bits": 8323072,
+        "ber": 0.0013358048566683072
+      },
+      "lut": {
+        "errors": 9340,
+        "bits": 8323072,
+        "ber": 0.0011221818097933072
+      },
+      "lut_over_nn_ber": 0.8400791509264256,
+      "lut_lower_observed_BER": true
+    },
+    {
+      "initialization": "seed1",
+      "OSNR_dB": 17.0,
+      "nn": {
+        "errors": 797,
+        "bits": 8323072,
+        "ber": 9.575791246309056e-05
+      },
+      "lut": {
+        "errors": 546,
+        "bits": 8323072,
+        "ber": 6.56007781742126e-05
+      },
+      "lut_over_nn_ber": 0.685069008782936,
+      "lut_lower_observed_BER": true
+    }
+  ],
+  "same_frozen_channel": true,
+  "all_transfer_gates_passed": true,
+  "direction_replicated_at_both_points": true,
+  "source_reports": {
+    "seed0": {
+      "path": "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\results\\sim_surrogate\\20261001_lut_transfer_20k\\summary.json",
+      "sha256": "ff0b3086618fcd65ec8311510025504c43e5e562a25eeaae1fe5fc571b9cba34"
+    },
+    "seed1": {
+      "path": "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\results\\sim_surrogate\\20261001_lut_replication_seed1\\continuation\\summary.json",
+      "sha256": "907aa68bf4c30bbd34bf00b3622bc74688cb8b4dfaea14965ad70a60609bc2dd"
+    }
+  }
+}

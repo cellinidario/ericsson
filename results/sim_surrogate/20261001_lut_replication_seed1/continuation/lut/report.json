@@ -1,0 +1,221 @@
+{
+  "arm": "lut",
+  "steps": 20000,
+  "initial_tx_digest": "787d3f42d641632ddb59e90b2de50c725229a9f8687dd39a803518cbf05ddd46",
+  "initial_rx_digest": "47c629df2deba3cb90051fb57a14dfc8a30721fed3644abe5ffdf28b85a2cdb4",
+  "training_channel_unchanged": true,
+  "first_tx_gradient_norm": 0.010279624268983224,
+  "history": [
+    {
+      "arm": "lut",
+      "step": 1,
+      "loss": 0.003768770955502987,
+      "elapsed_seconds_this_process": 0.3910000000614673
+    },
+    {
+      "arm": "lut",
+      "step": 1000,
+      "loss": 0.003631425788626075,
+      "elapsed_seconds_this_process": 10.063000000081956
+    },
+    {
+      "arm": "lut",
+      "step": 2000,
+      "loss": 0.0015179708134382963,
+      "elapsed_seconds_this_process": 19.70400000002701
+    },
+    {
+      "arm": "lut",
+      "step": 3000,
+      "loss": 0.0026446266565471888,
+      "elapsed_seconds_this_process": 29.375
+    },
+    {
+      "arm": "lut",
+      "step": 4000,
+      "loss": 0.0032428517006337643,
+      "elapsed_seconds_this_process": 39.375
+    },
+    {
+      "arm": "lut",
+      "step": 5000,
+      "loss": 0.0027185878716409206,
+      "elapsed_seconds_this_process": 49.35999999998603
+    },
+    {
+      "arm": "lut",
+      "step": 6000,
+      "loss": 0.005198535975068808,
+      "elapsed_seconds_this_process": 59.32900000002701
+    },
+    {
+      "arm": "lut",
+      "step": 7000,
+      "loss": 0.0020965118892490864,
+      "elapsed_seconds_this_process": 69.34400000004098
+    },
+    {
+      "arm": "lut",
+      "step": 8000,
+      "loss": 0.0021899389103055,
+      "elapsed_seconds_this_process": 79.39100000006147
+    },
+    {
+      "arm": "lut",
+      "step": 9000,
+      "loss": 0.002155778929591179,
+      "elapsed_seconds_this_process": 89.90700000000652
+    },
+    {
+      "arm": "lut",
+      "step": 10000,
+      "loss": 0.002131110057234764,
+      "elapsed_seconds_this_process": 100.0
+    },
+    {
+      "arm": "lut",
+      "step": 11000,
+      "loss": 0.0023945909924805164,
+      "elapsed_seconds_this_process": 110.06300000008196
+    },
+    {
+      "arm": "lut",
+      "step": 12000,
+      "loss": 0.0031701563857495785,
+      "elapsed_seconds_this_process": 120.48499999998603
+    },
+    {
+      "arm": "lut",
+      "step": 13000,
+      "loss": 0.0024084639735519886,
+      "elapsed_seconds_this_process": 132.125
+    },
+    {
+      "arm": "lut",
+      "step": 14000,
+      "loss": 0.0020738595630973577,
+      "elapsed_seconds_this_process": 143.78200000000652
+    },
+    {
+      "arm": "lut",
+      "step": 15000,
+      "loss": 0.0025601794477552176,
+      "elapsed_seconds_this_process": 155.329000000027
+    },
+    {
+      "arm": "lut",
+      "step": 16000,
+      "loss": 0.001482564490288496,
+      "elapsed_seconds_this_process": 166.7970000000205
+    },
+    {
+      "arm": "lut",
+      "step": 17000,
+      "loss": 0.0020831236615777016,
+      "elapsed_seconds_this_process": 178.26600000006147
+    },
+    {
+      "arm": "lut",
+      "step": 18000,
+      "loss": 0.0018430087948217988,
+      "elapsed_seconds_this_process": 189.85999999998603
+    },
+    {
+      "arm": "lut",
+      "step": 19000,
+      "loss": 0.00486936466768384,
+      "elapsed_seconds_this_process": 201.4220000000205
+    },
+    {
+      "arm": "lut",
+      "step": 20000,
+      "loss": 0.001002670731395483,
+      "elapsed_seconds_this_process": 212.93800000008196
+    }
+  ],
+  "waveform": {
+    "nmse_variance": 4.9650952825820543e-05,
+    "nmse_power": 2.0520206661527887e-05,
+    "mse": 2.2324750800043246e-06,
+    "samples": 30720
+  },
+  "input_gradient": {
+    "cosine": 0.9999629259109497,
+    "relative_l2": 0.0087843406945467,
+    "input_gradient_norm": 7.5532941818237305,
+    "parameters_frozen": true,
+    "no_parameter_gradients": true
+  },
+  "deployment": {
+    "blocks_per_point": 128,
+    "symbols_per_block": 32768,
+    "discard_symbols_each_edge": 128,
+    "bit_seed_base": 620000,
+    "noise_seed_base": 720000,
+    "channels": {
+      "15": {
+        "reference8": {
+          "errors": 9340,
+          "bits": 8323072,
+          "ber": 0.0011221818097933072
+        },
+        "digital_surrogate8": {
+          "errors": 9560,
+          "bits": 8323072,
+          "ber": 0.0011486143577755905
+        },
+        "reference16": {
+          "errors": 9269,
+          "bits": 8323072,
+          "ber": 0.001113651305671752
+        },
+        "paired_discordance": {
+          "reference_only_errors": 1190,
+          "digital_surrogate_only_errors": 1410
+        }
+      },
+      "17": {
+        "reference8": {
+          "errors": 546,
+          "bits": 8323072,
+          "ber": 6.56007781742126e-05
+        },
+        "digital_surrogate8": {
+          "errors": 570,
+          "bits": 8323072,
+          "ber": 6.848432886318898e-05
+        },
+        "reference16": {
+          "errors": 578,
+          "bits": 8323072,
+          "ber": 6.94455124261811e-05
+        },
+        "paired_discordance": {
+          "reference_only_errors": 81,
+          "digital_surrogate_only_errors": 105
+        }
+      }
+    },
+    "reference8_vs16_noiseless_photocurrent_nmse": 1.280421884075622e-07,
+    "reference8_vs16_rx_windows_nmse": 1.2271697414689697e-05
+  },
+  "field_diagnostics_on_reference32": {
+    "minority_real_field_energy_fraction": 0.4894663959300693,
+    "positive_real_field_fraction": 0.4973577558994293
+  },
+  "transfer_checks": {
+    "15": {
+      "digital_surrogate_over_reference_ber": 1.0235546038543897,
+      "adequate_error_counts": true,
+      "passed": true
+    },
+    "17": {
+      "digital_surrogate_over_reference_ber": 1.0439560439560438,
+      "adequate_error_counts": true,
+      "passed": true
+    }
+  },
+  "sampling_check_passed": true,
+  "pilot_gate_passed": true,
+  "scope": "One shared BPAM initialization; not laboratory validation, convergence proof or exact equivalence"
+}

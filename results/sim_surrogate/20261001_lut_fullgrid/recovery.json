@@ -1,0 +1,9 @@
+{
+  "original_failure": "Windows PermissionError while replacing status.json",
+  "repair": "Bounded retry on PermissionError in atomic JSON publication",
+  "resume_point": {"OSNR_dB": 17, "saved_blocks": 64},
+  "saved_counts_preserved": true,
+  "deadline_extended": false,
+  "final_state": "complete",
+  "historical_error_logs": "error.json and errors.log retain the original failure for provenance"
+}

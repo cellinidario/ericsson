@@ -1,0 +1,43 @@
+{
+  "joint_steps": 20000,
+  "learning_rate": 0.001,
+  "scheduler": null,
+  "initial_checkpoint": "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\results\\sim_surrogate\\20261001_joint_transfer_100k\\digital_surrogate\\last_training.pt",
+  "initial_sha256": "c342b630afa44a886af620c5e52fb149d270eb777246393888d879d1eb2bf8f2",
+  "digital_surrogate_checkpoint": "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\results\\sim_surrogate\\20261001_ASE_ridge_fresh40k\\digital_surrogate_best.pt",
+  "digital_surrogate_sha256": "84b2d464383730731b5c81ba7016b5f39e2c35b74798ee13619b8e5682a3a9ca",
+  "initialization": "Same trained NN/RX function, with exhaustive NN-to-LUT export",
+  "training_rng_seed": 202610012,
+  "evaluation_blocks": 128,
+  "training_EbN0_dB": 14.0,
+  "bandwidth_GHz": 20,
+  "DAC_RX_sps": 2,
+  "analog_sps": 8,
+  "check_sps": 16,
+  "eye_sps": 32,
+  "ADC_DAC_bits": 6,
+  "loss": "Same existing bit BCE plus auxiliary symbol CE in both arms",
+  "gates": {
+    "minimum_errors": 200,
+    "max_ber_ratio": 1.2,
+    "waveform_nmse": 0.001,
+    "gradient_relative_l2": 0.1,
+    "gradient_cosine": 0.99,
+    "rx_window_nmse_8_16": 0.0001
+  },
+  "deadline_unix": 1790864938.9825518,
+  "scope": "Matched NN/RX versus LUT/RX continuation; one source initialization",
+  "code_sha256": {
+    "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\experiments\\highrate_digital_surrogate_lut.py": "544bee674b53f5c8e20a80b4213195ae2a506a16f5e36352c69542ed0d6e3ef3",
+    "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\experiments\\highrate_digital_surrogate_transfer.py": "b51ce3fd5575b312c932aa3a309ed9b616b7c6294d9e17e55210511133d91986",
+    "experiments\\ofc_warmstart_validation.py": "7ff52fed3971eb17c06174bc7cf31c481b871dc3027b96098e8ca1af2061262f"
+  },
+  "optimizer_initialization": "Fresh Adam in both arms; no inherited optimizer moments",
+  "baseline_report": "C:\\Users\\celli\\Documents\\MATLAB\\MLforCPO2\\results\\sim_surrogate\\20261001_joint_transfer_100k\\digital_surrogate\\report.json",
+  "baseline_report_sha256": "747a32f1ff92fb2fa046c51e7f8cb992744d5ad6f30f73abd26b794e056d3873",
+  "arms": [
+    "nn",
+    "lut"
+  ],
+  "source_joint_steps": 100000
+}

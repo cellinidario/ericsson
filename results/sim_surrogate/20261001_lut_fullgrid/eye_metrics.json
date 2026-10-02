@@ -1,0 +1,22 @@
+{
+  "seed0_nn": {
+    "positive_real_field_fraction": 0.4948454826108871,
+    "minority_real_field_energy_fraction": 0.4991653561592102,
+    "warning": "Polarity statistics alone do not identify BPAM or two interleaved OOK streams"
+  },
+  "seed0_lut": {
+    "positive_real_field_fraction": 0.48708417338709675,
+    "minority_real_field_energy_fraction": 0.4944324195384979,
+    "warning": "Polarity statistics alone do not identify BPAM or two interleaved OOK streams"
+  },
+  "seed1_nn": {
+    "positive_real_field_fraction": 0.48207929057459675,
+    "minority_real_field_energy_fraction": 0.48841145634651184,
+    "warning": "Polarity statistics alone do not identify BPAM or two interleaved OOK streams"
+  },
+  "seed1_lut": {
+    "positive_real_field_fraction": 0.4880331716229839,
+    "minority_real_field_energy_fraction": 0.49438613653182983,
+    "warning": "Polarity statistics alone do not identify BPAM or two interleaved OOK streams"
+  }
+}
