@@ -1,10 +1,11 @@
 """Decision trees in place of the RX NNs of a computed case (DSP simplification of the receiver).
 
 The trees read the windows of the RX NNs and are trained by the classification and regression
-tree algorithm (CART, scikit-learn) directly on the received samples of the reference simulator,
-with the transmitted bits as targets: unlike the NNs, they need no gradient through the link, so
-the digital surrogate is not used. With the TX NN exported to its lookup table, the E2E system then
-runs without multiplications.
+tree algorithm (CART, scikit-learn) on received samples, with the transmitted bits as targets.
+The training samples come from the reference simulator (source='simulator', the default) or are
+generated through the digital surrogate (source='surrogate'), like the training data of the NNs;
+either way the trees are tested on the reference simulator. With the TX NN exported to its lookup
+table, the E2E system then runs without multiplications.
 
 Structure: 'symbol', one four-class tree deciding both bits of a symbol (for BPAM on the union of
 the amplitude and sign windows), or 'bit', one tree per bit on the window of the corresponding RX
@@ -18,7 +19,7 @@ with 8900001 + 50000 j + b at the j-th level). Test: the held-out blocks of the 
 in pipeline.extra_points), at least `test_blocks` blocks per level, then 128 more at a time until
 `target_errors` errors or `max_blocks` blocks. For every tree: nodes, leaves, maximum depth, and the
 average depth (comparisons per decision) over the first `test_blocks` blocks of each level.
-Results in <case folder>/trees/.
+Results in <case folder>/trees/ (file names ending in '_surrogate' for source='surrogate').
 """
 from concurrent.futures import ThreadPoolExecutor
 import json
@@ -76,16 +77,19 @@ def _errors(trees, inputs, bits, structure):
 
 def decision_trees(case, root, budget=Budget(), levels=(), structure=None, leaves=1024, window=None,
                    training_blocks=200, test_blocks=128, max_blocks=2048, target_errors=100, training_center_db=None,
-                   device=None, grid=None, verbose=True):
+                   source='simulator', device=None, grid=None, verbose=True):
     """Train (or load) the RX decision trees of the E2E system of a computed case and count their BER.
 
     `levels`: noise levels of the test; `structure`: 'symbol', 'bit' or None (as the RX NNs);
     `leaves`: maximum number of leaves per tree (nodes = 2 leaves - 1); `window`: the central samples
     of the RX NN window used as input (None: the whole window); `grid`: the levels the case was run
     with (default: the standard grid of its regime); `training_center_db`: the centre of the training levels
-    (default: the level where the E2E RX NN reaches BER 1e-3). Returns a dict with the points, the level at
-    BER 1e-3 and the complexity of the trees.
+    (default: the level where the E2E RX NN reaches BER 1e-3); `source`: where the training windows come
+    from, 'simulator' (the reference simulator) or 'surrogate' (the digital surrogate of the case). Returns a
+    dict with the points, the level at BER 1e-3 and the complexity of the trees.
     """
+    if source not in ('simulator', 'surrogate'):
+        raise ValueError(f"{source!r} is not one of ('simulator', 'surrogate').")
     device = device or default_device()
     grid = list(grid or EVALUATION_LEVEL_DB[case.regime])
     folder = case_folder(root, case, budget, grid)
@@ -102,7 +106,9 @@ def decision_trees(case, root, budget=Budget(), levels=(), structure=None, leave
                                 levels=levels, symbols=budget.symbols_per_block))
     if training_center_db is not None:      # only when given, so that the default signature stays as it is
         signature['training_center_db'] = float(training_center_db)
-    path = folder/'trees'/f'{structure}_L{window}_leaves{leaves}.json'
+    if source == 'surrogate':               # likewise: the trees of the simulator keep their signature and file
+        signature['source'] = source
+    path = folder/'trees'/f'{structure}_L{window}_leaves{leaves}{"_surrogate" if source == "surrogate" else ""}.json'
     if path.exists() and read_json(path)['signature'] == signature:
         return read_json(path)
     model, _ = surrogate(case, root, budget, device, verbose=False)
@@ -113,7 +119,8 @@ def decision_trees(case, root, budget=Budget(), levels=(), structure=None, leave
     if training_center_db is None and reached is None:
         raise ValueError(f'{case.name}: the E2E RX NN does not reach BER 1e-3 on the grid; set training_center_db.')
     nn = float(training_center_db) if training_center_db is not None else reached['level_db']
-    parts = [_windows(link, tx, rx, case.regime, [TRAINING_SEEDS[0]+50000*j+b for b in range(training_blocks)],
+    parts = [_windows(model if source == 'surrogate' else link, tx, rx, case.regime,
+                      [TRAINING_SEEDS[0]+50000*j+b for b in range(training_blocks)],
                       [TRAINING_SEEDS[1]+50000*j+b for b in range(training_blocks)], nn+offset, budget.symbols_per_block)
              for j, offset in enumerate(TRAINING_OFFSETS_DB)]
     x = _inputs([_central(np.concatenate([part[0][k] for part in parts]), window) for k in range(2)], structure, case.fmt)
@@ -145,7 +152,7 @@ def decision_trees(case, root, budget=Budget(), levels=(), structure=None, leave
             print(f'{case.name} trees, {"OSNR" if case.regime == "optical" else "SNR"} {level:g} dB: '
                   f'BER {errors/counted:.3e} ({errors} errors)', flush=True)
     t = threshold(points)
-    result = dict(signature=signature, structure=structure, window=window, leaves=leaves, nn_level_db=nn,
+    result = dict(signature=signature, structure=structure, window=window, leaves=leaves, source=source, nn_level_db=nn,
                   level_db=None if t is None else t['level_db'],
                   trees=[dict(nodes=int(tree.tree_.node_count), leaves=int(tree.get_n_leaves()),
                               maximum_depth=int(tree.get_depth())) for tree in trees], points=points)

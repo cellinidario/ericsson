@@ -23,7 +23,8 @@ MZM_BIASES = ('null', 'quadrature')
 # Settings added after results were stored, with the values that reproduce the earlier behavior:
 # at those values they are left out of the keys, so earlier folders and checkpoints keep their names.
 LEGACY_VALUES = {'power_reference': (None, 'mean'), 'optical_supergaussian_order': (4,),
-                 'rx_filter_before_adc': (False,), 'mzm_bias': ('null',), 'rx_sps': (None,)}
+                 'rx_filter_before_adc': (False,), 'mzm_bias': ('null',), 'rx_sps': (None,),
+                 'tx_filter_after_dac': (False,)}
 
 
 def identity(settings):
@@ -52,6 +53,9 @@ class LinkParameters:
     tx_pulse_rolloff: float = .85
     tx_pulse_span_symbols: int = 16
     tx_filter: str = 'rectangular'       # digital H_TX before the DAC: 'rectangular', 'gaussian' (3-dB bandwidth) or 'none'
+    tx_filter_after_dac: bool = False    # False: digital H_TX before the DAC; True: analog H_TX after the DAC, the band
+                                         # limitation of DAC and driver electronics, known and applied exactly,
+                                         # outside the digital surrogate
     dac_bits: Optional[int] = 6          # None: ideal DAC. Full scale = peak of each block (no clipping)
     peak_fraction: float = .6            # peak voltage at the modulator input, in units of V_pi
 

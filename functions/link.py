@@ -4,14 +4,17 @@
          -> unit power -> fiber -> + ASE -> H_opt -> |.|^2 -> photodiode -> sampling at the ADC
          rate -> + thermal noise -> ADC -> H_RX -> y[n]
     (with LinkParameters.rx_filter_before_adc: ... -> photodiode -> + thermal noise -> analog H_RX
-     -> sampling -> quantization -> y[n], H_RX modeling the photodiode and ADC electronics)
+     -> sampling -> quantization -> y[n], H_RX modeling the photodiode and ADC electronics;
+     with LinkParameters.tx_filter_after_dac: x[n] -> pulse shaping -> DAC -> reconstruction -> analog
+     H_TX -> driver -> ..., H_TX modeling the DAC and driver electronics)
 
-Pulse shaping, H_TX, DAC and ADC are digital and known exactly, and so is the digital H_RX after
-the ADC. The analog part (driver, modulator, fiber, H_opt, photodiode, and H_RX when it is analog)
-is what a digital surrogate replaces during training: the surrogate is this same module with its
-analog FIRs refitted on input/output data (driver, optical_filter and photodiode; driver,
-optical_filter and rx_filter when H_RX is analog, the photodiode response then being kept as in the
-reference: the identity at two samples per symbol).
+Pulse shaping, H_TX, DAC and ADC are known exactly, and so is the digital H_RX after the ADC; an
+analog H_TX after the DAC is known too and applied exactly, outside the digital surrogate. The analog
+part (driver, modulator, fiber, H_opt, photodiode, and H_RX when it is analog) is what a digital
+surrogate replaces during training: the surrogate is this same module with its analog FIRs refitted
+on input/output data (driver, optical_filter and photodiode; driver, optical_filter and rx_filter
+when H_RX is analog, the photodiode response then being kept as in the reference: the identity at
+two samples per symbol).
 
 Conventions (power reference 'mean', the default for ASE noise):
 - the drive of every transmitter is scaled to the same peak voltage, over the whole block;
@@ -102,6 +105,14 @@ class Link(nn.Module):
         p, dac_rate = self.p, self.p.sample_rate(self.p.dsp_sps)
         shaped = torch.nn.functional.conv1d(x.unsqueeze(1), self.pulse.view(1, 1, -1),
                                             padding=self.pulse.numel()//2).squeeze(1)
+        if p.tx_filter_after_dac:
+            # analog H_TX after the DAC, known and applied exactly at the simulation rate (outside the digital
+            # surrogate): the DAC converts the shaped samples, full scale = their peak
+            peak = shaped.detach().abs().amax(-1, keepdim=True).clamp_min(1e-12)
+            if p.dac_bits:
+                shaped = quantize(shaped, p.dac_bits, -peak, peak)
+            drive = self.reconstruct(shaped/peak if self.laser else shaped, self.sps//p.dsp_sps, dac_rate)
+            return self.tx_filter(drive, self.rate)
         if self.laser:
             # DAC full scale fixed by the TX samples before H_TX, not by the filtered signal: a filter
             # (or a pre-emphasis) that lowers the swing lowers the DAC output; output normalized to +-1
