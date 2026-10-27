@@ -105,6 +105,13 @@ def identity_taps(num_taps):
     return taps
 
 
+def cascade_taps(first, second):
+    """Two odd-length FIRs in cascade, as one FIR with the length of the first (centre taps of the convolution)."""
+    full = np.convolve(first, second)
+    side = (full.size-len(first))//2
+    return full[side:side+len(first)].astype(np.float32)
+
+
 def apply_fir(conv, x):
     """(blocks, samples) through a single-channel Conv1d, same length."""
     return conv(x.unsqueeze(1)).squeeze(1)

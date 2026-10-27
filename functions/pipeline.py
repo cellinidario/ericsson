@@ -6,7 +6,8 @@ results) the evaluation grid. Changing any setting gives a new folder; an existi
 is loaded instead of recomputed. Every stage is restartable.
 
 Digital surrogates go to <root>/digital_surrogates/<key of the analog settings>/ and are
-shared by all cases with the same analog link (the TX filter is digital and lies outside).
+shared by all cases with the same analog link (an analog H_TX is part of it, LinkParameters.tx_filter_in_surrogate:
+the key then includes its bandwidth; a digital H_TX, or an analog one applied exactly, lies outside).
 
 Methods:
     'linear'        least-squares linear equalizer, conventional TX
@@ -67,7 +68,10 @@ def transmitters(case, device):
 def surrogate(case, root, budget, device=None, verbose=True):
     """Fit (or load) the digital surrogate of the case's analog link; return it and its audits."""
     device = device or default_device()
-    folder = Path(root)/'digital_surrogates'/_hash(dict(analog=case.link.analog_part(), steps=budget.surrogate_steps))
+    analog = case.link.analog_part()
+    if case.link.tx_filter_in_surrogate:
+        analog['tx_bandwidth_ghz'] = case.tx_bandwidth_ghz
+    folder = Path(root)/'digital_surrogates'/_hash(dict(analog=analog, steps=budget.surrogate_steps))
     reference = Link(case.tx_bandwidth_ghz*1e9, case.link).to(device).freeze()
     if verbose:
         print('=== Digital surrogate: fit of the analog link ===' + ('  (already fitted)' if (folder/'fit.json').exists() else ''),
@@ -93,7 +97,8 @@ def train(case, root, budget, model, methods=METHODS, device=None, verbose=True)
 
     RX-only: RX initialization with the conventional TX, then RX-only continuation. E2E with
     the conventional initialization: RX initialization, TX pretraining, joint training; with
-    the random initialization: joint training from random weights.
+    the receiver initialization: RX initialization, joint training with the TX NN from random
+    weights; with the random initialization: joint training from random weights.
     """
     from .training import train_stage
     device = device or default_device()
@@ -105,17 +110,20 @@ def train(case, root, budget, model, methods=METHODS, device=None, verbose=True)
     common = dict(regime=case.regime, level_db=case.training_level_db, symbols=budget.symbols_per_update,
                   print_every=12500 if verbose else 0)
     e2e = bool(wanted & {'e2e', 'nn_continued', 'lut'})
-    from_conventional = case.initialization == 'conventional'
-    if 'rx_only' in wanted or (e2e and from_conventional):
+    initialized_rx = case.initialization in ('conventional', 'receiver')
+    if 'rx_only' in wanted or (e2e and initialized_rx):
         train_stage('rx', conventional, rx_only, model, out/'rx_initialization.pt', budget.rx_steps,
                     SEEDS['rx']+case.seed, title='RX initialization with the conventional TX - BCE', **common)
     trained = {}
     if e2e:
-        if from_conventional:
+        if initialized_rx:
             rx.load_state_dict(rx_only.state_dict())         # both arms start from the same RX
+        if case.initialization == 'conventional':
             train_stage('tx', tx, rx, model, out/'tx_pretraining.pt', budget.tx_steps, SEEDS['tx']+case.seed,
                         title='TX NN fitted to the conventional voltages - MSE', **common)
             title = 'E2E: TX NN and RX NN trained jointly - BCE'
+        elif case.initialization == 'receiver':
+            title = 'E2E: TX NN from random weights and the initialized RX NN trained jointly - BCE'
         else:
             title = 'E2E: TX NN and RX NN trained jointly from random weights - BCE'
         train_stage('joint', tx, rx, model, out/'e2e.pt', budget.joint_steps, SEEDS['joint']+case.seed,

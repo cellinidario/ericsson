@@ -16,6 +16,15 @@ gain squared (H_opt acts on the field) and the H_RX gain, while the thermal nois
 the two: the fitted H_RX is therefore normalized to unit DC gain, as the H_RX of the reference
 (SNR referred to the photodiode output), and H_opt takes the inverse gain, which leaves the
 noiseless and ASE-noisy outputs unchanged.
+
+With H_TX in the analog link (LinkParameters.tx_filter_in_surrogate, the default) the driver FIR is H_TX in
+cascade with the driver response. With a nearly linear modulator the data do not fix how the
+low-pass filtering splits between that FIR and H_opt, while the ASE enters between the two and the
+peak and power normalizations act before H_opt: a wrong split makes the surrogate filter the noise.
+H_opt is then identified before the fit and kept fixed: the identity in a link without optical
+filter, otherwise from the ASE spectrum after the filter with the signal off (optical spectrum
+analyzer). The fitted H_RX is normalized to unit DC gain as above, with the inverse gain moved to
+the driver FIR.
 """
 import math
 from copy import deepcopy
@@ -25,12 +34,14 @@ import torch
 import torch.nn.functional as F
 
 from .files import digest, read_json, save_json, save_torch
+from .filters import _frequency_sampled, apply_fir, identity_taps
 
 FIR_BLOCKS = ('driver', 'optical_filter', 'photodiode')
 FIR_BLOCKS_ANALOG_RX = ('driver', 'optical_filter', 'rx_filter')   # with an analog H_RX
 EDGE = 1024              # samples excluded at each record edge in the loss and in the checks
 RECORD = 8192            # samples per training record
 WEIGHT_PENALTY = .001
+SPECTRUM_RECORDS = 256   # ASE records averaged in the optical spectrum measurement
 
 
 def fir_blocks(link):
@@ -41,15 +52,44 @@ def fir_weights(link):
     return [getattr(link, name).weight for name in fir_blocks(link)]
 
 
+def fitted_blocks(link):
+    """The FIRs fitted on input/output data. With H_TX in the analog link (tx_filter_in_surrogate), the split of the
+    low-pass filtering between the driver FIR (H_TX, before the modulator) and H_opt (after it, past the ASE
+    injection) is not identifiable from input/output data with a nearly linear modulator, and a wrong split filters
+    the noise: H_opt is then fixed beforehand (optical_filter_taps) and not fitted."""
+    blocks = fir_blocks(link)
+    return tuple(b for b in blocks if b != 'optical_filter') if link.p.tx_filter_in_surrogate else blocks
+
+
+def optical_filter_taps(reference, records=SPECTRUM_RECORDS, seed=44001):
+    """H_opt identified before the fit: the identity in a link without optical filter; otherwise from the ASE
+    spectrum after the filter, as measured with the signal off (optical spectrum analyzer): averaged periodogram of
+    white complex noise through the reference H_opt, then the zero-phase FIR of its square root by frequency
+    sampling (the design of the reference filters), unit DC gain."""
+    taps = reference.p.fir_taps(reference.sps)
+    if reference.p.optical_filter == 'none':
+        return identity_taps(taps)
+    generator, spectrum = torch.Generator().manual_seed(seed), 0.
+    with torch.no_grad():
+        for _ in range(records):
+            noise = torch.randn((2, 8192), generator=generator).to(reference.pulse.device)
+            filtered = apply_fir(reference.optical_filter, noise)
+            spectrum = spectrum+torch.fft.fft(filtered[0]+1j*filtered[1]).abs().square().double().cpu()
+    return _frequency_sampled((spectrum/records).sqrt().numpy(), taps)
+
+
 def normalize_gain(model):
-    """Analog H_RX: unit DC gain of the fitted H_RX, the inverse gain moved to H_opt (see the module docstring)."""
+    """Analog H_RX: unit DC gain of the fitted H_RX, the inverse gain moved to H_opt (see the module docstring).
+    With H_opt fixed (fitted_blocks) the inverse gain goes to the driver FIR instead, exact for a linear modulator;
+    in use the driver gain has no effect, the drive being scaled to the peak voltage."""
     if model.p.rx_filter_before_adc:
         with torch.no_grad():
             gain = model.rx_filter.weight.sum()
             if gain <= 0:
                 raise RuntimeError('The fitted H_RX has a nonpositive DC gain.')
             model.rx_filter.weight.div_(gain)
-            model.optical_filter.weight.mul_(gain.sqrt())
+            fixed_optical = 'optical_filter' not in fitted_blocks(model)
+            (model.driver if fixed_optical else model.optical_filter).weight.mul_(gain.sqrt())
     return model
 
 
@@ -124,13 +164,17 @@ def fit(reference, folder, steps=40000):
             raise RuntimeError(f'The digital surrogate in {folder} was fitted with other settings.')
         return normalize_gain(load_fitted(model, best_path)).freeze(), done['validation']
     model.train().requires_grad_(False)
+    weights = [getattr(model, name).weight for name in fitted_blocks(model)]
     with torch.no_grad():
-        for weight in fir_weights(model):
+        if 'optical_filter' not in fitted_blocks(model):
+            taps = torch.tensor(optical_filter_taps(reference)[::-1].copy(), device=device)
+            model.optical_filter.weight.copy_(taps.view_as(model.optical_filter.weight))
+        for weight in weights:
             weight.zero_()
             weight[..., weight.shape[-1]//2] = 1.
             weight.requires_grad_(True)
     train, valid = records(reference, 16, 11001), records(reference, 4, 22001)
-    optimizer = torch.optim.Adam(fir_weights(model), lr=.001)
+    optimizer = torch.optim.Adam(weights, lr=.001)
     start, best, best_step = 0, float('inf'), 0
     if resume_path.exists():
         saved = torch.load(resume_path, map_location=device, weights_only=True)
@@ -141,13 +185,13 @@ def fit(reference, folder, steps=40000):
         x, target = train[step % len(train)]
         y = target[..., EDGE:-EDGE]
         loss = (model.raw_photocurrent(x)[..., EDGE:-EDGE]-y).square().mean()/y.var(unbiased=False)
-        loss = loss+WEIGHT_PENALTY*sum(w.square().sum() for w in fir_weights(model))
+        loss = loss+WEIGHT_PENALTY*sum(w.square().sum() for w in weights)
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
         if (step+1) % 100 == 0 or step+1 == steps:
             score = nmse(model, reference, valid)
-            criterion = score+WEIGHT_PENALTY*sum(float(w.detach().square().sum()) for w in fir_weights(model))
+            criterion = score+WEIGHT_PENALTY*sum(float(w.detach().square().sum()) for w in weights)
             if criterion < best:
                 best, best_step = criterion, step+1
                 save_torch(best_path, model.state_dict())
@@ -168,7 +212,11 @@ def audit(model, reference, tx, bits_seed=8700001, noise_seed=8700101, projectio
 
     Output NMSE (photocurrent, or H_RX output when H_RX is analog) without noise and with ASE
     (limits 1e-3 and 1e-2); with an analog H_RX, the thermal noise passes through the fitted H_RX,
-    whose noise power gain must match the reference within 0.1 dB; gradient
+    whose noise power gain must match the reference within 0.1 dB. Reported, not yet in the pass
+    criterion: the shift of the effective SNR in the digital surrogate relative to the reference
+    (positive: the surrogate is optimistic), with ASE (signal variance over the power of the noise
+    component of the output, same ASE samples) and with thermal noise (signal variance over the
+    thermal noise power at the output); gradient
     of a random projection with respect to the drive and, for a trainable TX, to its weights
     (cosine >= 0.99, relative L2 <= 0.1). The peak scale is held constant in the gradients:
     the block maximum is not differentiable where two peaks tie.
@@ -176,17 +224,23 @@ def audit(model, reference, tx, bits_seed=8700001, noise_seed=8700101, projectio
     device, g = reference.pulse.device, reference.p.guard_symbols*reference.sps
     bits = torch.randint(0, 2, (2, 4096), generator=torch.Generator().manual_seed(bits_seed)).to(device)[None]
     drive = reference.tx_waveform(tx(bits)).detach()
-    rows = {}
+    rows, outputs = {}, {}
     for name, level in (('noiseless_nmse', None), ('ase_noisy_nmse', 16.05)):
         with torch.no_grad():
             torch.manual_seed(noise_seed)
-            a = reference.analog_output(drive, 'optical', level)[..., g:-g]
+            a = reference.analog_output(drive, 'optical', level)[..., g:-g].double()
             torch.manual_seed(noise_seed)
-            b = model.analog_output(drive, 'optical', level)[..., g:-g]
-        rows[name] = float((a-b).double().square().sum()/(a-a.mean()).double().square().sum())
+            b = model.analog_output(drive, 'optical', level)[..., g:-g].double()
+        rows[name] = float((a-b).square().sum()/(a-a.mean()).square().sum())
+        outputs[name] = a, b
+    (a0, b0), (a1, b1) = outputs['noiseless_nmse'], outputs['ase_noisy_nmse']
+    signal_db = 10*math.log10(float(b0.var()/a0.var()))
+    rows['ase_snr_shift_db'] = signal_db-10*math.log10(float((b1-b0).square().mean()/(a1-a0).square().mean()))
+    thermal_gain_db = 0.
     if reference.p.rx_filter_before_adc:
         power = [float(link.rx_filter.weight.double().square().sum()) for link in (model, reference)]
-        rows['thermal_noise_gain_db'] = 10*math.log10(power[0]/power[1])
+        rows['thermal_noise_gain_db'] = thermal_gain_db = 10*math.log10(power[0]/power[1])
+    rows['thermal_snr_shift_db'] = signal_db-thermal_gain_db
     a, b = drive.clone().requires_grad_(), drive.clone().requires_grad_()
     ya = reference.analog_output(a, 'optical', detach_peak=True)[..., g:-g]
     yb = model.analog_output(b, 'optical', detach_peak=True)[..., g:-g]

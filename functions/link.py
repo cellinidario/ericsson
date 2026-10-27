@@ -1,20 +1,20 @@
 """The link between the TX DSP output and the RX DSP input, block by block, in signal order.
 
-    x[n] -> pulse shaping -> H_TX -> DAC -> reconstruction -> driver -> peak scaling -> MZM
+    x[n] -> pulse shaping -> DAC -> reconstruction -> H_TX -> driver -> peak scaling -> MZM
          -> unit power -> fiber -> + ASE -> H_opt -> |.|^2 -> photodiode -> sampling at the ADC
          rate -> + thermal noise -> ADC -> H_RX -> y[n]
-    (with LinkParameters.rx_filter_before_adc: ... -> photodiode -> + thermal noise -> analog H_RX
-     -> sampling -> quantization -> y[n], H_RX modeling the photodiode and ADC electronics;
-     with LinkParameters.tx_filter_after_dac: x[n] -> pulse shaping -> DAC -> reconstruction -> analog
-     H_TX -> driver -> ..., H_TX modeling the DAC and driver electronics)
+    (H_TX modeling the DAC and driver electronics; with LinkParameters.tx_filter_after_dac=False:
+     x[n] -> pulse shaping -> digital H_TX -> DAC -> reconstruction -> driver -> ...;
+     with LinkParameters.rx_filter_before_adc: ... -> photodiode -> + thermal noise -> analog H_RX
+     -> sampling -> quantization -> y[n], H_RX modeling the photodiode and ADC electronics)
 
-Pulse shaping, H_TX, DAC and ADC are known exactly, and so is the digital H_RX after the ADC; an
-analog H_TX after the DAC is known too and applied exactly, outside the digital surrogate. The analog
-part (driver, modulator, fiber, H_opt, photodiode, and H_RX when it is analog) is what a digital
-surrogate replaces during training: the surrogate is this same module with its analog FIRs refitted
-on input/output data (driver, optical_filter and photodiode; driver, optical_filter and rx_filter
-when H_RX is analog, the photodiode response then being kept as in the reference: the identity at
-two samples per symbol).
+Pulse shaping, DAC and ADC are known exactly, and so are a digital H_TX before the DAC and a digital
+H_RX after the ADC. The analog part (H_TX, driver, modulator, fiber, H_opt, photodiode, and H_RX when it
+is analog) is what a digital surrogate replaces during training: the surrogate is this same module with
+its analog FIRs refitted on input/output data (driver, with H_TX in cascade, optical_filter and
+photodiode; driver, optical_filter and rx_filter when H_RX is analog, the photodiode response then being
+kept as in the reference: the identity at two samples per symbol). With
+LinkParameters.tx_filter_in_surrogate=False the analog H_TX is applied exactly, outside the surrogate.
 
 Conventions (power reference 'mean', the default for ASE noise):
 - the drive of every transmitter is scaled to the same peak voltage, over the whole block;
@@ -44,8 +44,8 @@ from dataclasses import replace
 import torch
 import torch.nn as nn
 
-from .filters import (apply_fir, convolve, fir_module, gaussian_fir, gaussian_lowpass, identity_taps, ideal_lowpass,
-                      lowpass_fir, nrz_pulse, quantize, rrc_pulse, supergaussian_fir, waveshaper_fir,
+from .filters import (apply_fir, cascade_taps, convolve, fir_module, gaussian_fir, gaussian_lowpass, identity_taps,
+                      ideal_lowpass, lowpass_fir, nrz_pulse, quantize, rrc_pulse, supergaussian_fir, waveshaper_fir,
                       waveshaper_insertion_loss)
 from .parameters import LinkParameters
 
@@ -63,8 +63,15 @@ class Link(nn.Module):
         rate, taps = p.sample_rate(self.sps), p.fir_taps(self.sps)
         nyquist = rate/2
         # Analog FIRs. A low-pass with cutoff above Nyquist is the identity on the simulated band.
-        self.driver = fir_module(identity_taps(taps) if p.driver_bandwidth >= nyquist
-                                 else lowpass_fir(p.driver_bandwidth, rate, taps))
+        driver = identity_taps(taps) if p.driver_bandwidth >= nyquist else lowpass_fir(p.driver_bandwidth, rate, taps)
+        if p.tx_filter_in_surrogate:
+            # the analog H_TX in cascade with the driver response: one FIR of the analog link, refitted by the
+            # digital surrogate
+            tx = {'gaussian': lambda: gaussian_fir(self.tx_bandwidth, rate, taps),
+                  'rectangular': lambda: lowpass_fir(self.tx_bandwidth, rate, taps),
+                  'none': lambda: identity_taps(taps)}[p.tx_filter]()
+            driver = cascade_taps(driver, tx)
+        self.driver = fir_module(driver)
         if p.optical_filter == 'waveshaper':
             width = p.waveshaper_width*p.symbol_rate
             self.optical_filter = fir_module(waveshaper_fir(width, p.waveshaper_edge_bandwidth, rate, taps),
@@ -106,13 +113,14 @@ class Link(nn.Module):
         shaped = torch.nn.functional.conv1d(x.unsqueeze(1), self.pulse.view(1, 1, -1),
                                             padding=self.pulse.numel()//2).squeeze(1)
         if p.tx_filter_after_dac:
-            # analog H_TX after the DAC, known and applied exactly at the simulation rate (outside the digital
-            # surrogate): the DAC converts the shaped samples, full scale = their peak
+            # analog H_TX after the DAC: the DAC converts the shaped samples, full scale = their peak; H_TX is then
+            # applied exactly at the simulation rate (outside the digital surrogate) or, with tx_filter_in_surrogate,
+            # by the driver FIR of the analog link
             peak = shaped.detach().abs().amax(-1, keepdim=True).clamp_min(1e-12)
             if p.dac_bits:
                 shaped = quantize(shaped, p.dac_bits, -peak, peak)
             drive = self.reconstruct(shaped/peak if self.laser else shaped, self.sps//p.dsp_sps, dac_rate)
-            return self.tx_filter(drive, self.rate)
+            return drive if p.tx_filter_in_surrogate else self.tx_filter(drive, self.rate)
         if self.laser:
             # DAC full scale fixed by the TX samples before H_TX, not by the filtered signal: a filter
             # (or a pre-emphasis) that lowers the swing lowers the DAC output; output normalized to +-1

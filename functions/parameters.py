@@ -15,7 +15,7 @@ OPTICAL_FILTERS = ('waveshaper', 'gaussian', 'supergaussian', 'none')
 RX_FILTERS = ('gaussian', 'none')
 REGIMES = ('electrical', 'optical')
 FORMATS = ('pam4', 'bpam')
-INITIALIZATIONS = ('conventional', 'random')
+INITIALIZATIONS = ('conventional', 'receiver', 'random')
 PRECODERS = (True, False, 'second', 'both')
 POWER_REFERENCES = ('mean', 'laser')
 MZM_BIASES = ('null', 'quadrature')
@@ -24,7 +24,7 @@ MZM_BIASES = ('null', 'quadrature')
 # at those values they are left out of the keys, so earlier folders and checkpoints keep their names.
 LEGACY_VALUES = {'power_reference': (None, 'mean'), 'optical_supergaussian_order': (4,),
                  'rx_filter_before_adc': (False,), 'mzm_bias': ('null',), 'rx_sps': (None,),
-                 'tx_filter_after_dac': (False,)}
+                 'tx_filter_after_dac': (False,), 'tx_filter_in_surrogate': (False,)}
 
 
 def identity(settings):
@@ -52,10 +52,12 @@ class LinkParameters:
     tx_pulse: str = 'nrz'                # 'nrz': rectangle with raised-cosine edges; 'rrc': root raised cosine
     tx_pulse_rolloff: float = .85
     tx_pulse_span_symbols: int = 16
-    tx_filter: str = 'rectangular'       # digital H_TX before the DAC: 'rectangular', 'gaussian' (3-dB bandwidth) or 'none'
-    tx_filter_after_dac: bool = False    # False: digital H_TX before the DAC; True: analog H_TX after the DAC, the band
-                                         # limitation of DAC and driver electronics, known and applied exactly,
-                                         # outside the digital surrogate
+    tx_filter: str = 'rectangular'       # H_TX: 'rectangular', 'gaussian' (3-dB bandwidth) or 'none'
+    tx_filter_after_dac: bool = True     # True: analog H_TX after the DAC, the band limitation of DAC and driver
+                                         # electronics; False: digital H_TX before the DAC
+    tx_filter_in_surrogate: bool = True  # the analog H_TX is part of the analog link, merged with the driver response,
+                                         # and the digital surrogate refits it; False: known and applied exactly,
+                                         # outside the digital surrogate. Always False for a digital H_TX
     dac_bits: Optional[int] = 6          # None: ideal DAC. Full scale = peak of each block (no clipping)
     peak_fraction: float = .6            # peak voltage at the modulator input, in units of V_pi
 
@@ -95,8 +97,8 @@ class LinkParameters:
     # 'mean' for ASE noise); a LinkParameters used without a Case takes 'mean'.
     # 'mean':  drive scaled to the peak voltage at the modulator input and field scaled to unit mean
     #          optical power, for every TX (simulator of Secondini; with an optical amplifier).
-    # 'laser': H_TX before the DAC as in 'mean', but the DAC full scale is the peak of the TX samples
-    #          before H_TX (the filtered signal is not rescaled; a rectangular H_TX can clip), the driver
+    # 'laser': the DAC full scale is the peak of the TX samples before H_TX (with a digital H_TX the
+    #          filtered signal is not rescaled; a rectangular H_TX can clip), the driver
     #          gain is fixed (DAC full scale -> peak voltage) and the laser power is fixed: the field is
     #          divided by the mean optical power of the conventional PAM-4 TX on the same link, so a TX
     #          that pre-emphasizes or lowers its mean power pays for it in SNR.
@@ -118,6 +120,8 @@ class LinkParameters:
             raise ValueError(f'{self.power_reference!r} is not one of {POWER_REFERENCES}.')
         if self.analog_sps % self.dsp_sps or self.analog_sps % self.adc_sps:
             raise ValueError('The analog rate must be a multiple of the DSP and ADC rates.')
+        if not self.tx_filter_after_dac:             # only an analog H_TX can be refitted
+            object.__setattr__(self, 'tx_filter_in_surrogate', False)
 
     @property
     def adc_sps(self):
@@ -162,6 +166,8 @@ class LinkParameters:
             keys += ('rx_filter', 'rx_filter_bandwidth', 'rx_filter_before_adc')
         if self.mzm_bias != 'null':                  # bias and drive range of the modulator
             keys += ('mzm_bias',)
+        if self.tx_filter_in_surrogate:              # H_TX belongs to the analog link (its bandwidth is the Case's)
+            keys += ('tx_filter', 'tx_filter_in_surrogate')
         return {k: getattr(self, k) for k in keys}
 
 
@@ -215,7 +221,8 @@ class Case:
     link: LinkParameters = field(default_factory=LinkParameters)
     seed: int = 0
     label: str = ''                      # optional suffix of the name
-    initialization: str = 'conventional'  # E2E start: 'conventional' transceiver or 'random' weights
+    initialization: str = 'conventional'  # E2E start: 'conventional' transceiver, 'receiver' (RX initialized with the
+                                          # conventional TX, TX NN from random weights) or 'random' weights
 
     def __post_init__(self):
         if self.regime not in REGIMES or self.fmt not in FORMATS:
