@@ -40,6 +40,11 @@ def precode(bits, rows=(1,)):
     return torch.stack([torch.cumsum(bits[:, r], dim=-1) % 2 if r in rows else bits[:, r] for r in range(2)], dim=1)
 
 
+def gray_code(bits):
+    """PAM-4 Gray coder: (b0, b1) -> (b0, b0 XOR b1). The receiver still estimates b0 and b1."""
+    return torch.stack((bits[:, 0], (bits[:, 0]+bits[:, 1]) % 2), dim=1)
+
+
 def symbol_contexts(coded, memory):
     """(blocks, 2, N) bits -> (blocks, N, 2*memory): bits of symbols k-2..k+2, first row then second row.
 
@@ -135,18 +140,52 @@ class TransmitterNN(nn.Module):
         return self._volts(bits)
 
 
+class ZeroMeanTransmitter(TransmitterNN):
+    """TX NN of the 'zero-mean' E2E start: TransmitterNN, same architecture and initial weights, with
+
+    * zero-mean output: the mean of the network over the 1024 contexts and both samples (the DC of
+      the drive for independent, equiprobable bits) is subtracted, as in the laboratory drive chain,
+      where the mean of the DAC codes does not move the modulator operating point; the operating point
+      is `bias`, in units of the peak voltage, trained from zero (the null) for PAM-4 and fixed at
+      the null for BPAM;
+    * the first-layer weights from the symbols k-2, k-1, k+1, k+2 set to zero before training (all
+      weights are trained);
+    * for PAM-4, the Gray coder before the network; lookup_table() is addressed by the coded bits.
+    """
+
+    def __init__(self, fmt, use_precoder=True, p=LinkParameters()):
+        super().__init__(fmt, use_precoder, p)
+        self.gray = fmt == 'pam4'
+        address = torch.arange(2**(2*self.memory))
+        self.register_buffer('all_contexts', ((address[:, None] >> torch.arange(2*self.memory-1, -1, -1)) & 1).float())
+        self.bias = nn.Parameter(torch.zeros(())) if fmt == 'pam4' else None
+        first = self.hidden if isinstance(self.hidden, nn.Linear) else self.hidden[0]
+        central = torch.zeros(2*self.memory, dtype=torch.bool)
+        central[self.memory//2] = central[self.memory+self.memory//2] = True   # the two bits of symbol k
+        with torch.no_grad():
+            first.weight[:, ~central] = 0.
+
+    def _volts(self, contexts):
+        volts = super()._volts(contexts)-super()._volts(self.all_contexts).mean()
+        return volts if self.bias is None else volts+self.peak*self.bias
+
+    def forward(self, bits):
+        return super().forward(gray_code(bits) if self.gray else bits)
+
+
 class LookupTransmitter(nn.Module):
     """TX as a trainable table with 2^10 = 1024 rows of two voltages.
 
     The row address is the context of TransmitterNN read as a binary number, most significant
     bit first: the five first-row bits of symbols k-2..k+2, then the five second-row bits. The
-    entries are kept within the peak voltage by project(), called after every update.
+    entries are kept within the peak voltage, or within the largest entry of the exported table
+    if larger (ZeroMeanTransmitter), by project(), called after every update.
     """
 
-    def __init__(self, table, fmt, use_precoder=True, p=LinkParameters()):
+    def __init__(self, table, fmt, use_precoder=True, p=LinkParameters(), gray=False):
         super().__init__()
         self.fmt, self.use_precoder = fmt, precoder_label(fmt, use_precoder)
-        self.rows = precoded_rows(fmt, use_precoder)
+        self.rows, self.gray = precoded_rows(fmt, use_precoder), gray
         self.memory, self.peak = p.tx_memory_symbols, p.peak_volt
         if table.shape != (2**(2*self.memory), p.dsp_sps):
             raise ValueError(f'The table must have shape {(2**(2*self.memory), p.dsp_sps)}.')
@@ -156,9 +195,12 @@ class LookupTransmitter(nn.Module):
     @classmethod
     def from_network(cls, network, p=LinkParameters()):
         """The table equal to a trained TransmitterNN."""
-        return cls(network.lookup_table(), network.fmt, network.use_precoder, p)
+        table = cls(network.lookup_table(), network.fmt, network.use_precoder, p, getattr(network, 'gray', False))
+        table.peak = max(table.peak, float(table.table.abs().max()))
+        return table
 
     def forward(self, bits):
+        bits = gray_code(bits) if self.gray else bits
         coded = precode(bits, self.rows) if self.rows else bits
         address = (symbol_contexts(coded, self.memory).long()*self.weights).sum(-1)
         return self.table[address].reshape(bits.shape[0], -1)

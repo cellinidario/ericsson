@@ -28,7 +28,7 @@ import numpy as np
 import torch
 
 from . import digital_surrogate, linear_equalizer as linear
-from .dsp import ConventionalTransmitter, LookupTransmitter, ReceiverNN, TransmitterNN
+from .dsp import ConventionalTransmitter, LookupTransmitter, ReceiverNN, TransmitterNN, ZeroMeanTransmitter
 from .evaluation import blocks_to_count, comparison, count_errors, held_out_bits, threshold_with_interval, wilson
 from .files import read_json, save_json
 from .link import Link
@@ -61,8 +61,9 @@ def default_device():
 
 
 def transmitters(case, device):
+    network = ZeroMeanTransmitter if case.initialization == 'zero-mean' else TransmitterNN
     return (ConventionalTransmitter(case.fmt, case.precode, case.link).to(device),
-            TransmitterNN(case.fmt, case.precode, case.link).to(device))
+            network(case.fmt, case.precode, case.link).to(device))
 
 
 def surrogate(case, root, budget, device=None, verbose=True):
@@ -98,7 +99,8 @@ def train(case, root, budget, model, methods=METHODS, device=None, verbose=True)
     RX-only: RX initialization with the conventional TX, then RX-only continuation. E2E with
     the conventional initialization: RX initialization, TX pretraining, joint training; with
     the receiver initialization: RX initialization, joint training with the TX NN from random
-    weights; with the random initialization: joint training from random weights.
+    weights; with the random and zero-mean initializations: joint training from random weights
+    (zero-mean: dsp.ZeroMeanTransmitter as TX NN).
     """
     from .training import train_stage
     device = device or default_device()
@@ -124,6 +126,8 @@ def train(case, root, budget, model, methods=METHODS, device=None, verbose=True)
             title = 'E2E: TX NN and RX NN trained jointly - BCE'
         elif case.initialization == 'receiver':
             title = 'E2E: TX NN from random weights and the initialized RX NN trained jointly - BCE'
+        elif case.initialization == 'zero-mean':
+            title = 'E2E: zero-mean TX NN and RX NN trained jointly from random weights - BCE'
         else:
             title = 'E2E: TX NN and RX NN trained jointly from random weights - BCE'
         train_stage('joint', tx, rx, model, out/'e2e.pt', budget.joint_steps, SEEDS['joint']+case.seed,

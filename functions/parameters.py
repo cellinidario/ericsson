@@ -15,7 +15,7 @@ OPTICAL_FILTERS = ('waveshaper', 'gaussian', 'supergaussian', 'none')
 RX_FILTERS = ('gaussian', 'none')
 REGIMES = ('electrical', 'optical')
 FORMATS = ('pam4', 'bpam')
-INITIALIZATIONS = ('conventional', 'receiver', 'random')
+INITIALIZATIONS = ('conventional', 'receiver', 'random', 'zero-mean')
 PRECODERS = (True, False, 'second', 'both')
 POWER_REFERENCES = ('mean', 'laser')
 MZM_BIASES = ('null', 'quadrature')
@@ -222,7 +222,8 @@ class Case:
     seed: int = 0
     label: str = ''                      # optional suffix of the name
     initialization: str = 'conventional'  # E2E start: 'conventional' transceiver, 'receiver' (RX initialized with the
-                                          # conventional TX, TX NN from random weights) or 'random' weights
+                                          # conventional TX, TX NN from random weights), 'random' weights, or
+                                          # 'zero-mean' (random weights, dsp.ZeroMeanTransmitter)
 
     def __post_init__(self):
         if self.regime not in REGIMES or self.fmt not in FORMATS:
